@@ -1,0 +1,35 @@
+camera:
+  rtsp_url: "rtsp://pi:password@192.168.0.60:554/stream1"
+
+location:
+  # Camera at LFAS (Aerodrome de Falaise)
+  name: "LFAS"
+  latitude: 48.9267952
+  longitude: -0.1477169
+  timezone: "Europe/Paris"
+
+schedule:
+  day_interval_minutes: 5
+  night_interval_minutes: 60
+
+api:
+  url: "https://api.example.com/api/webcam/image"
+  key: "secret-api-key"
+  timeout_seconds: 30
+
+# METAR/TAF overlay (Aviation Weather API - no API key required)
+metar:
+  enabled: false
+  icao_code: "LFRK"                    # Nearest reporting airport (Caen/Carpiquet)
+  overlay_position: "bottom-left"      # Position on image
+  font_size: 16
+  font_color: "white"
+  background_color: "rgba(0,0,0,0.6)"  # Semi-transparent black
+  # Optional: Add icon from https://www.svgrepo.com/collection/dazzle-line-icons/
+  icon:
+    url: "https://www.svgrepo.com/download/123456/weather-icon.svg"  # URL to SVG
+    # path: "/path/to/local/icon.svg"  # Or use local file
+    # svg: "<svg>...</svg>"           # Or inline SVG
+    size: 24                          # Icon size in pixels (8-128)
+    position: "left"                   # "left" or "right" of text
+

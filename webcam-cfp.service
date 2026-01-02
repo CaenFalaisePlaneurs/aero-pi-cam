@@ -1,0 +1,22 @@
+[Unit]
+Description=Webcam Capture Service for LFAS Aerodrome
+After=network.target
+
+[Service]
+Type=simple
+# Adjust the path below based on: nvm which node
+Environment="PATH=/home/pi/.nvm/versions/node/v20.10.0/bin:/usr/bin"
+ExecStart=/home/pi/.nvm/versions/node/v20.10.0/bin/npm run webcam
+WorkingDirectory=/opt/webcam-cfp
+Restart=always
+RestartSec=10
+User=pi
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=webcam-cfp
+
+[Install]
+WantedBy=multi-user.target
+
