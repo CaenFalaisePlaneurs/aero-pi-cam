@@ -1,0 +1,500 @@
+"""Image overlay with text and SVG icons using Poppins font."""
+
+from datetime import datetime
+from io import BytesIO
+from pathlib import Path
+
+import cairosvg
+from PIL import Image, ImageDraw, ImageFont
+
+from .config import Config
+
+# Hardcoded icon paths (relative to src/ directory - part of codebase)
+SUNRISE_ICON_PATH = "images/icons/sunrise.svg"
+SUNSET_ICON_PATH = "images/icons/sunset.svg"
+
+
+def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Image.Image | None:
+    """Load icon from local file path.
+
+    Args:
+        icon_path: Path to SVG file
+        size: Icon size in pixels
+        is_codebase_icon: If True, path is relative to src/ directory (hardcoded icons).
+                         If False, path is relative to project root (user-configured logos).
+    """
+    try:
+        icon_file = Path(icon_path)
+        if not icon_file.is_absolute():
+            current_file = Path(__file__)
+            if is_codebase_icon:
+                # Codebase icons are in src/images/icons/
+                src_dir = current_file.parent
+                icon_file = src_dir / icon_path
+            else:
+                # User-configured logos are in images/ at project root
+                project_root = current_file.parent.parent
+                icon_file = project_root / icon_path
+
+        with open(icon_file, encoding="utf-8") as f:
+            svg_content = f.read()
+
+        # Convert SVG to PNG using cairosvg
+        png_bytes = cairosvg.svg2png(
+            bytestring=svg_content.encode("utf-8"), output_width=size, output_height=size
+        )
+        icon_img = Image.open(BytesIO(png_bytes))
+        return icon_img.convert("RGBA")
+    except Exception:
+        return None
+
+
+def load_poppins_font(size: int) -> ImageFont.ImageFont:
+    """Load Poppins Medium font with fallback to default."""
+    try:
+        current_file = Path(__file__)
+        project_root = current_file.parent.parent
+        font_path = project_root / "fonts" / "Poppins-Medium.ttf"
+        if font_path.exists():
+            return ImageFont.truetype(str(font_path), size)  # type: ignore[return-value]
+    except Exception:
+        pass
+    return ImageFont.load_default()
+
+
+def parse_color(color_str: str) -> tuple[int, int, int]:
+    """Parse color string to RGB tuple."""
+    color_map = {
+        "white": (255, 255, 255),
+        "black": (0, 0, 0),
+        "red": (255, 0, 0),
+        "green": (0, 255, 0),
+        "blue": (0, 0, 255),
+    }
+    return color_map.get(color_str.lower(), (255, 255, 255))
+
+
+def draw_text_with_shadow(
+    draw: ImageDraw.ImageDraw,
+    position: tuple[int, int],
+    text: str,
+    fill: tuple[int, int, int],
+    font: ImageFont.ImageFont,
+    shadow_enabled: bool,
+    shadow_offset_x: int,
+    shadow_offset_y: int,
+    shadow_color: tuple[int, int, int],
+) -> None:
+    """Draw text with optional drop shadow.
+
+    Args:
+        draw: ImageDraw instance
+        position: (x, y) position for text
+        text: Text to draw
+        fill: Text color (RGB tuple)
+        font: Font to use
+        shadow_enabled: Whether to draw shadow
+        shadow_offset_x: Horizontal shadow offset
+        shadow_offset_y: Vertical shadow offset
+        shadow_color: Shadow color (RGB tuple)
+    """
+    if shadow_enabled:
+        # Draw shadow first (offset position)
+        shadow_pos = (position[0] + shadow_offset_x, position[1] + shadow_offset_y)
+        draw.text(shadow_pos, text, fill=shadow_color, font=font)
+
+    # Draw text on top
+    draw.text(position, text, fill=fill, font=font)
+
+
+def paste_image_with_shadow(
+    img: Image.Image,
+    icon: Image.Image,
+    position: tuple[int, int],
+    shadow_enabled: bool,
+    shadow_offset_x: int,
+    shadow_offset_y: int,
+    shadow_color: tuple[int, int, int],
+) -> None:
+    """Paste an image with optional drop shadow.
+
+    Args:
+        img: Target image to paste onto
+        icon: Image to paste (should have alpha channel)
+        position: (x, y) position for image
+        shadow_enabled: Whether to draw shadow
+        shadow_offset_x: Horizontal shadow offset
+        shadow_offset_y: Vertical shadow offset
+        shadow_color: Shadow color (RGB tuple)
+    """
+    if shadow_enabled and icon.mode == "RGBA":
+        # Create shadow version: convert icon to shadow color while preserving alpha
+        shadow_icon = icon.copy()
+        shadow_pixels = shadow_icon.load()
+        shadow_r, shadow_g, shadow_b = shadow_color
+
+        # Replace RGB channels with shadow color, keep alpha
+        for y in range(shadow_icon.height):
+            for x in range(shadow_icon.width):
+                r, g, b, a = shadow_pixels[x, y]
+                if a > 0:  # Only modify non-transparent pixels
+                    shadow_pixels[x, y] = (shadow_r, shadow_g, shadow_b, a)
+
+        # Paste shadow first at offset position
+        shadow_pos = (position[0] + shadow_offset_x, position[1] + shadow_offset_y)
+        img.paste(shadow_icon, shadow_pos, shadow_icon)
+
+    # Paste original image on top
+    img.paste(icon, position, icon)
+
+
+def draw_overlay_on_image(
+    img: Image.Image,
+    config: Config,
+    capture_time: datetime,
+    sunrise_time: datetime,
+    sunset_time: datetime,
+    raw_metar: str | None = None,
+    raw_taf: str | None = None,
+    metar_icao: str | None = None,
+) -> None:
+    """Draw overlay elements on a PIL Image.
+
+    This is the shared overlay drawing logic used by both debug and production modes.
+    The image should be in RGBA mode to support transparency.
+    """
+    draw = ImageDraw.Draw(img)
+    img_width, img_height = img.size
+
+    # Load Poppins font using configured size
+    font_size = config.overlay.font_size
+    font = load_poppins_font(font_size)
+    font_small = load_poppins_font(max(8, font_size - 2))  # Smaller font for METAR
+
+    # Parse text color and shadow settings
+    text_color = parse_color(config.overlay.font_color)
+    shadow_color = parse_color(config.overlay.shadow_color)
+
+    # Padding and spacing
+    padding = config.overlay.padding
+    line_spacing = config.overlay.line_spacing
+    icon_spacing = 6
+
+    # Load logo (gracefully handle missing logo)
+    logo_size = config.overlay.logo_size
+    logo = None
+    try:
+        logo = load_icon(config.overlay.provider_logo, logo_size, is_codebase_icon=False)
+    except Exception:
+        pass
+
+    # Calculate positions
+    y_pos = padding
+
+    # Top-left: Provider name only (no location name, no logo)
+    provider_text = config.overlay.provider_name
+    temp_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+    provider_bbox = temp_draw.textbbox((0, 0), provider_text, font=font)
+    provider_x = padding
+    provider_y = padding - provider_bbox[1]
+    draw_text_with_shadow(
+        draw,
+        (provider_x, provider_y),
+        provider_text,
+        text_color,
+        font,
+        config.overlay.shadow_enabled,
+        config.overlay.shadow_offset_x,
+        config.overlay.shadow_offset_y,
+        shadow_color,
+    )
+
+    # Camera name + UTC date/time on top-right, right aligned
+    capture_str = capture_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+    camera_text = f"{config.overlay.camera_name} - {capture_str}"
+    camera_bbox = temp_draw.textbbox((0, 0), camera_text, font=font)
+    camera_text_width = camera_bbox[2] - camera_bbox[0]
+    camera_text_height = camera_bbox[3] - camera_bbox[1]
+    camera_x = img_width - padding - camera_text_width
+    camera_y = padding - camera_bbox[1]
+    draw_text_with_shadow(
+        draw,
+        (camera_x, camera_y),
+        camera_text,
+        text_color,
+        font,
+        config.overlay.shadow_enabled,
+        config.overlay.shadow_offset_x,
+        config.overlay.shadow_offset_y,
+        shadow_color,
+    )
+
+    # Sunrise and sunset times with icons (below camera name, right aligned)
+    y_pos = padding + camera_text_height + line_spacing
+    sunrise_str = sunrise_time.strftime("%H:%M UTC")
+    sunset_str = sunset_time.strftime("%H:%M UTC")
+
+    # Load sunrise and sunset icons
+    sun_icon_size = config.overlay.sun_icon_size
+    sunrise_icon = load_icon(SUNRISE_ICON_PATH, sun_icon_size, is_codebase_icon=True)
+    sunset_icon = load_icon(SUNSET_ICON_PATH, sun_icon_size, is_codebase_icon=True)
+
+    # Calculate total width for sunrise + sunset to right-align them
+    sunrise_bbox = temp_draw.textbbox((0, 0), sunrise_str, font=font)
+    sunset_bbox = temp_draw.textbbox((0, 0), sunset_str, font=font)
+    sunrise_text_width = sunrise_bbox[2] - sunrise_bbox[0]
+    sunset_text_width = sunset_bbox[2] - sunset_bbox[0]
+
+    # Start from right edge
+    sunset_text_x = img_width - padding - sunset_text_width
+    sunset_icon_x = sunset_text_x - icon_spacing - sun_icon_size
+    sunrise_text_x = sunset_icon_x - 16 - sunrise_text_width
+    sunrise_icon_x = sunrise_text_x - icon_spacing - sun_icon_size
+
+    # Paste icons and draw text
+    sunrise_y = y_pos
+    if sunrise_icon:
+        paste_image_with_shadow(
+            img,
+            sunrise_icon,
+            (sunrise_icon_x, sunrise_y),
+            config.overlay.shadow_enabled,
+            config.overlay.shadow_offset_x,
+            config.overlay.shadow_offset_y,
+            shadow_color,
+        )
+
+    sunrise_text_height = sunrise_bbox[3] - sunrise_bbox[1]
+    sunrise_text_y = sunrise_y + (sun_icon_size - sunrise_text_height) // 2 - sunrise_bbox[1]
+    draw_text_with_shadow(
+        draw,
+        (sunrise_text_x, sunrise_text_y),
+        sunrise_str,
+        text_color,
+        font,
+        config.overlay.shadow_enabled,
+        config.overlay.shadow_offset_x,
+        config.overlay.shadow_offset_y,
+        shadow_color,
+    )
+
+    if sunset_icon:
+        paste_image_with_shadow(
+            img,
+            sunset_icon,
+            (sunset_icon_x, sunrise_y),
+            config.overlay.shadow_enabled,
+            config.overlay.shadow_offset_x,
+            config.overlay.shadow_offset_y,
+            shadow_color,
+        )
+
+    sunset_text_height = sunset_bbox[3] - sunset_bbox[1]
+    sunset_text_y = sunrise_y + (sun_icon_size - sunset_text_height) // 2 - sunset_bbox[1]
+    draw_text_with_shadow(
+        draw,
+        (sunset_text_x, sunset_text_y),
+        sunset_str,
+        text_color,
+        font,
+        config.overlay.shadow_enabled,
+        config.overlay.shadow_offset_x,
+        config.overlay.shadow_offset_y,
+        shadow_color,
+    )
+
+    # Raw METAR and TAF at bottom-left (if enabled and available)
+    all_text_lines = []
+
+    if config.metar.raw_metar_enabled and raw_metar and metar_icao:
+        all_text_lines.append(raw_metar)
+
+    if config.metar.raw_metar_enabled and raw_taf and metar_icao:
+        # TAF can have multiple lines - preserve them (keep leading spaces)
+        taf_lines = raw_taf.split("\n")
+        for i, taf_line in enumerate(taf_lines):
+            # Only strip trailing whitespace to preserve leading spaces
+            taf_line = taf_line.rstrip()
+            if taf_line:
+                all_text_lines.append(taf_line)
+
+    if all_text_lines:
+        # Calculate text dimensions for wrapping
+        max_width = img_width - padding * 2
+        wrapped_lines = []
+
+        for text_line in all_text_lines:
+            # Extract leading spaces to preserve indentation
+            leading_spaces = len(text_line) - len(text_line.lstrip())
+            indent = text_line[:leading_spaces] if leading_spaces > 0 else ""
+
+            words = text_line.split()
+            current_line = indent  # Start with leading spaces
+
+            for word in words:
+                # Only add space if current_line has content beyond just the indent
+                if current_line.strip():
+                    test_line = f"{current_line} {word}".rstrip()
+                else:
+                    # current_line is just indent, don't add extra space
+                    test_line = current_line + word
+                test_bbox = temp_draw.textbbox((0, 0), test_line, font=font_small)
+                test_width = test_bbox[2] - test_bbox[0]
+
+                if test_width <= max_width:
+                    current_line = test_line
+                else:
+                    if current_line.strip():  # Only add non-empty lines
+                        wrapped_lines.append(current_line)
+                    current_line = indent + word  # Start new line with indent
+
+            if current_line.strip():  # Only add non-empty lines
+                wrapped_lines.append(current_line)
+
+        # Draw lines from bottom
+        # Calculate total height: sum of all line heights plus line_spacing gaps between them
+        line_heights = []
+        for line in wrapped_lines:
+            line_bbox = temp_draw.textbbox((0, 0), line, font=font_small)
+            line_heights.append(line_bbox[3] - line_bbox[1])
+        total_height = sum(line_heights) + (len(wrapped_lines) - 1) * line_spacing
+        y_pos = img.height - total_height - padding
+
+        current_y = y_pos
+        for i, line in enumerate(wrapped_lines):
+            # Calculate width of leading spaces to preserve indentation
+            leading_spaces = len(line) - len(line.lstrip())
+            leading_space_width = 0
+            if leading_spaces > 0:
+                leading_space_text = line[:leading_spaces]
+                leading_space_width = int(temp_draw.textlength(leading_space_text, font=font_small))
+
+            # Draw line without leading spaces at offset position to preserve indentation
+            line_without_spaces = line.lstrip()
+            line_bbox = temp_draw.textbbox((0, 0), line_without_spaces, font=font_small)
+            draw_text_with_shadow(
+                draw,
+                (padding + leading_space_width, current_y - line_bbox[1]),
+                line_without_spaces,
+                text_color,
+                font_small,
+                config.overlay.shadow_enabled,
+                config.overlay.shadow_offset_x,
+                config.overlay.shadow_offset_y,
+                shadow_color,
+            )
+            current_y += line_heights[i] + line_spacing
+
+    # Bottom-right: Logo
+    if logo:
+        try:
+            logo_x = img_width - padding - logo_size
+            logo_y = img_height - padding - logo_size
+            paste_image_with_shadow(
+                img,
+                logo,
+                (logo_x, logo_y),
+                config.overlay.shadow_enabled,
+                config.overlay.shadow_offset_x,
+                config.overlay.shadow_offset_y,
+                shadow_color,
+            )
+        except Exception:
+            pass
+
+
+def generate_overlay_only(
+    img_width: int,
+    img_height: int,
+    config: Config,
+    capture_time: datetime,
+    sunrise_time: datetime,
+    sunset_time: datetime,
+    raw_metar: str | None = None,
+    raw_taf: str | None = None,
+    metar_icao: str | None = None,
+) -> bytes:
+    """Generate overlay-only image for debugging (transparent background with overlay elements).
+
+    This creates an image showing only the overlay elements on a transparent background,
+    useful for debugging overlay positioning and visibility.
+    """
+    # Create transparent image
+    img = Image.new("RGBA", (img_width, img_height), (0, 0, 0, 0))
+
+    # Draw overlay using shared function
+    draw_overlay_on_image(
+        img,
+        config,
+        capture_time,
+        sunrise_time,
+        sunset_time,
+        raw_metar=raw_metar,
+        raw_taf=raw_taf,
+        metar_icao=metar_icao,
+    )
+
+    # Save as PNG to preserve transparency
+    output = BytesIO()
+    img.save(output, format="PNG")
+    return output.getvalue()
+
+
+def add_comprehensive_overlay(
+    image_bytes: bytes,
+    config: Config,
+    capture_time: datetime,
+    sunrise_time: datetime,
+    sunset_time: datetime,
+    raw_metar: str | None = None,
+    raw_taf: str | None = None,
+    metar_icao: str | None = None,
+) -> bytes:
+    """Add comprehensive overlay by compositing overlay image on top of camera image.
+
+    Uses the same overlay generation logic as debug mode, but composites it on the camera image.
+    """
+    try:
+        # Load camera image
+        camera_img = Image.open(BytesIO(image_bytes)).convert("RGBA")
+        img_width, img_height = camera_img.size
+    except Exception as e:
+        print(f"ERROR: Failed to open image for overlay: {e}")
+        return image_bytes
+
+    # Log actual image dimensions for debugging
+    print(f"Overlay: Image size is {img_width}x{img_height}")
+
+    # Generate overlay on transparent image using shared function
+    overlay_img = Image.new("RGBA", (img_width, img_height), (0, 0, 0, 0))
+    draw_overlay_on_image(
+        overlay_img,
+        config,
+        capture_time,
+        sunrise_time,
+        sunset_time,
+        raw_metar=raw_metar,
+        raw_taf=raw_taf,
+        metar_icao=metar_icao,
+    )
+
+    # Check if overlay has any non-transparent pixels (for debugging)
+    overlay_has_content = any(
+        overlay_img.getpixel((x, y))[3] > 0
+        for x in range(0, min(100, img_width), 10)
+        for y in range(0, min(100, img_height), 10)
+    )
+    print(
+        f"Overlay: Has content: {overlay_has_content}, Size: {overlay_img.size}, Mode: {overlay_img.mode}"
+    )
+    print(f"Camera: Size: {camera_img.size}, Mode: {camera_img.mode}")
+
+    # Composite overlay on top of camera image using alpha compositing
+    # Both images must be RGBA and same size
+    result_img = Image.alpha_composite(camera_img, overlay_img)
+
+    # Convert back to RGB and save as JPEG
+    result_rgb = result_img.convert("RGB")
+    output = BytesIO()
+    result_rgb.save(output, format="JPEG", quality=90)
+    return output.getvalue()

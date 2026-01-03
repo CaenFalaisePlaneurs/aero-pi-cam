@@ -1,35 +1,58 @@
 camera:
+  # Option 1: URL with embedded credentials (URL-encode special characters: & -> %26, etc.)
   rtsp_url: "rtsp://pi:password@192.168.0.60:554/stream1"
+  
+  # Option 2: Separate credentials (recommended for VIGI cameras with special characters)
+  # VIGI cameras require special characters in passwords but reject URL-encoded passwords.
+  # Use separate fields to pass password unencoded (as-is).
+  # rtsp_url: "rtsp://192.168.0.60:554/stream1"
+  # rtsp_user: "pi"
+  # rtsp_password: "your-password-here"  # No URL encoding needed - password used as-is (special characters like $ or & are OK)
 
 location:
   # Camera at LFAS (Aerodrome de Falaise)
   name: "LFAS"
   latitude: 48.9267952
   longitude: -0.1477169
-  timezone: "Europe/Paris"
+  # Note: All times are calculated and stored in UTC (aeronautical requirement)
 
 schedule:
   day_interval_minutes: 5
   night_interval_minutes: 60
+
+# Debug mode (for development/testing only)
+# Enable via DEBUG_MODE environment variable (DEBUG_MODE=true)
+# When enabled, uses faster intervals in seconds instead of minutes
+debug:
+  day_interval_seconds: 10   # 10 seconds during day
+  night_interval_seconds: 30  # 30 seconds during night
 
 api:
   url: "https://api.example.com/api/webcam/image"
   key: "secret-api-key"
   timeout_seconds: 30
 
+# Overlay configuration
+overlay:
+  provider_name: "Caen Falaise Planeurs"
+  provider_logo: "images/logo-cfp.svg"  # User-configured logo in images/ directory
+  logo_size: 72  # Logo size in pixels
+  camera_name: "hangar 2"
+  font_color: "white"
+  font_size: 16
+  sun_icon_size: 24  # Sunrise/sunset icon size in pixels
+  line_spacing: 4  # Line spacing in pixels between overlay elements
+  padding: 15  # Padding in pixels from image borders
+  background_color: "rgba(0,0,0,0.6)"
+  shadow_enabled: true  # Enable drop shadow behind text to prevent white-on-white
+  shadow_offset_x: 2  # Horizontal shadow offset in pixels
+  shadow_offset_y: 2  # Vertical shadow offset in pixels
+  shadow_color: "black"  # Shadow color (white, black, red, green, blue)
+
 # METAR/TAF overlay (Aviation Weather API - no API key required)
 metar:
-  enabled: false
+  enabled: true
   icao_code: "LFRK"                    # Nearest reporting airport (Caen/Carpiquet)
-  overlay_position: "bottom-left"      # Position on image
-  font_size: 16
-  font_color: "white"
-  background_color: "rgba(0,0,0,0.6)"  # Semi-transparent black
-  # Optional: Add icon from https://www.svgrepo.com/collection/dazzle-line-icons/
-  icon:
-    url: "https://www.svgrepo.com/download/123456/weather-icon.svg"  # URL to SVG
-    # path: "/path/to/local/icon.svg"  # Or use local file
-    # svg: "<svg>...</svg>"           # Or inline SVG
-    size: 24                          # Icon size in pixels (8-128)
-    position: "left"                   # "left" or "right" of text
+  api_url: "https://aviationweather.gov/api/data/metar"  # METAR API base URL
+  raw_metar_enabled: true              # Show raw METAR text block
 

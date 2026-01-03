@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Config with secrets (will be created from example in container or mounted)
+# config.yaml
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Git
+.git/
+.gitignore
+
+# Documentation (not needed in container, but keep README)
+*.md
+!README.md
+
+# Planning files
+.nico-ignore/
+
+# Docker files (keep for reference but don't copy into image)
+# Dockerfile
+# .dockerignore
+# docker-compose.yml

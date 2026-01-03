@@ -1,11 +1,18 @@
-# Dependencies
-node_modules/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
 
-# Build output
+# Build
+build/
 dist/
-
-# Config with secrets
-config.yaml
+*.egg-info/
 
 # IDE
 .idea/
@@ -19,12 +26,27 @@ Thumbs.db
 
 # Logs
 *.log
-npm-debug.log*
+
+# Config with secrets
+config.yaml
 
 # Coverage
-coverage/
+.coverage
+htmlcov/
+.pytest_cache/
 
-# Environment
-.env
-.env.local
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Docker
+.docker/
+
+# Debug images (keep folder structure, ignore contents)
+.debug/*
+!.debug/.gitkeep
+
+# Fonts (may contain non-GPL compatible licenses)
+fonts/
 

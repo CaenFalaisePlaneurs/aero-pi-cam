@@ -1,0 +1,13 @@
+# Testing
+pytest>=8.3.0
+pytest-asyncio>=0.23.0
+pytest-mock>=3.14.0
+pytest-cov>=5.0.0
+
+# Code quality
+ruff>=0.6.0
+black>=24.8.0
+mypy>=1.11.0
+types-pyyaml>=6.0.12
+types-pillow>=10.2.0
+

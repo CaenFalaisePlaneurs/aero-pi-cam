@@ -1,0 +1,122 @@
+---
+alwaysApply: true
+---
+
+# Code Guidelines for aero-pi-cam
+
+Quick reference for AI-assisted development. The codebase itself is the primary reference.
+
+## Python Version
+
+- **Target**: Python 3.13.5 (Raspberry Pi default)
+- **Range**: >=3.11, <3.14
+- Use modern type syntax: `X | None` over `Optional[X]`, `datetime.UTC` over `timezone.utc`
+
+## Type Annotations (Required)
+
+- All functions must have parameter and return type annotations
+- Use `mypy` strict mode (`disallow_untyped_defs = true`)
+- Prefer `collections.abc.Callable` over `typing.Callable`
+- Use `dict[str, Any]` not `Dict[str, Any]`
+
+## UTC Time Handling (Critical)
+
+**All times MUST be UTC for aeronautical compliance:**
+
+- ✅ `datetime.now(UTC)` or `datetime.now(timezone.utc)`
+- ✅ ISO 8601 with 'Z' suffix: `2026-01-02T15:30:00Z`
+- ✅ Log format: `"2026-01-02 15:30:00 UTC"`
+- ❌ Never use `datetime.now()` without timezone
+- ❌ Never use local timezone or DST conversions
+- ❌ Timezone fields in config are NOT used
+
+## Code Quality
+
+- **Formatting**: Black, 100 char line length
+- **Linting**: Ruff (E, F, I, N, W, UP rules)
+- **Type checking**: mypy (strict mode)
+- **Tests**: pytest with pytest-asyncio
+- **Unit Tests**: Whenever code changes are made, unit tests must be checked and updated if needed. Run `pytest` to verify all tests pass.
+- Run `/quality-fix` before committing
+
+## Error Handling Pattern
+
+Use result dataclasses instead of exceptions for control flow:
+
+```python
+@dataclass
+class Result:
+    success: bool
+    data: bytes | None = None
+    error: str | None = None
+
+def operation() -> Result:
+    try:
+        return Result(success=True, data=...)
+    except Exception as e:
+        return Result(success=False, error=str(e))
+```
+
+## Testing Pattern
+
+Use dependency injection for external dependencies:
+
+```python
+_subprocess_run: Callable = subprocess.run
+
+def set_subprocess_run(func: Callable) -> None:
+    global _subprocess_run
+    _subprocess_run = func
+```
+
+## Logging
+
+- **Only lifecycle events**: start/stop, first connections, captures, uploads, schedule changes
+- **Format**: `"Captured image at {time_str} ({mode_str} mode)"`
+- **Timer format**: `"{hours}:{minutes:02d}:{seconds:02d}"`
+- **Never log passwords** - redact with `***` if needed
+
+## Module Structure
+
+- Module-level docstring required
+- Support both package and script execution:
+```python
+try:
+    from .module import func
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from src.module import func
+```
+
+## Special Cases
+
+### RTSP Authentication
+- **Always sanitize inputs** - passwords may contain special characters
+- Use separate `rtsp_user`/`rtsp_password` config fields (not URL-embedded)
+- Pass passwords **unencoded** in RTSP URLs (some cameras reject URL-encoded passwords)
+- Only URL-encode username if it contains special characters
+- Handle any RTSP camera, not just specific brands
+
+### Async Operations
+- Use `async`/`await` for I/O (HTTP, file I/O)
+- Prevent concurrent captures with `is_running` flag
+- Use `APScheduler` for async job scheduling
+
+## Configuration
+
+- Pydantic models for validation
+- YAML format with comments
+- Environment variable: `CONFIG_PATH` for config file location
+- Never commit `config.yaml` (contains secrets)
+
+## Quick Checklist
+
+- [ ] All functions typed
+- [ ] All times UTC
+- [ ] Result objects for errors (not exceptions)
+- [ ] Dependency injection for testability
+- [ ] No passwords in logs
+- [ ] Graceful degradation (optional features don't crash service)
+- [ ] Docstrings for public functions
+- [ ] Code formatted and linted
+- [ ] Unit tests checked and updated if needed (run `pytest` to verify)

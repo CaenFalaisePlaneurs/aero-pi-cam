@@ -1,0 +1,152 @@
+"""Configuration loading and validation using Pydantic."""
+
+import os
+from pathlib import Path
+
+import yaml
+from pydantic import BaseModel, Field, field_validator
+
+
+class CameraConfig(BaseModel):
+    """Camera configuration."""
+
+    rtsp_url: str = Field(
+        ..., description="RTSP URL for camera stream (with or without credentials)"
+    )
+    rtsp_user: str | None = Field(None, description="RTSP username (alternative to URL-embedded)")
+    rtsp_password: str | None = Field(
+        None, description="RTSP password (alternative to URL-embedded)"
+    )
+
+    @field_validator("rtsp_url")
+    @classmethod
+    def validate_rtsp_url(cls, v: str) -> str:
+        """Validate RTSP URL format."""
+        if not v.startswith("rtsp://"):
+            raise ValueError("RTSP URL must start with rtsp://")
+        return v
+
+
+class LocationConfig(BaseModel):
+    """Location configuration for sun calculation.
+
+    Note: All times in this application are in UTC (Coordinated Universal Time)
+    for aeronautical compliance. No timezone conversions or daylight saving time
+    adjustments are applied.
+    """
+
+    name: str = Field(..., min_length=1, description="Location identifier")
+    latitude: float = Field(..., ge=-90, le=90, description="Latitude in degrees")
+    longitude: float = Field(..., ge=-180, le=180, description="Longitude in degrees")
+
+
+class ScheduleConfig(BaseModel):
+    """Schedule configuration."""
+
+    day_interval_minutes: int = Field(..., ge=1, le=1440, description="Capture interval during day")
+    night_interval_minutes: int = Field(
+        ..., ge=1, le=1440, description="Capture interval during night"
+    )
+
+
+class DebugConfig(BaseModel):
+    """Debug configuration for development/testing.
+
+    Note: Debug mode is enabled via DEBUG_MODE environment variable.
+    This config only provides interval settings when debug mode is active.
+    """
+
+    day_interval_seconds: int = Field(
+        10, ge=1, le=3600, description="Capture interval during day (seconds)"
+    )
+    night_interval_seconds: int = Field(
+        30, ge=1, le=3600, description="Capture interval during night (seconds)"
+    )
+
+
+class ApiConfig(BaseModel):
+    """API upload configuration."""
+
+    url: str = Field(..., description="API endpoint URL")
+    key: str = Field(..., min_length=1, description="API key for authentication")
+    timeout_seconds: int = Field(..., ge=1, le=300, description="Request timeout in seconds")
+
+
+class OverlayConfig(BaseModel):
+    """Overlay configuration for comprehensive image overlay.
+
+    Overlay covers the full image surface (0,0 to image width, image height).
+    Elements are positioned as follows:
+    - Logo + provider name + OACI code: top-left
+    - Camera name + UTC timestamp: below logo, aligned left
+    - Sunrise + sunset times: below camera info, aligned left
+    - Raw METAR: bottom-left, aligned left
+    """
+
+    provider_name: str = Field(..., min_length=1, description="Image provider name")
+    provider_logo: str = Field(..., min_length=1, description="Path to provider logo SVG file")
+    logo_size: int = Field(72, ge=1, description="Logo size in pixels")
+    camera_name: str = Field(..., min_length=1, description="Camera identifier")
+    font_color: str = Field("white", min_length=1, description="Color for overlay text")
+    font_size: int = Field(16, ge=1, description="Font size in pixels")
+    sun_icon_size: int = Field(24, ge=1, description="Sunrise/sunset icon size in pixels")
+    line_spacing: int = Field(
+        4, ge=0, description="Line spacing in pixels between overlay elements"
+    )
+    padding: int = Field(15, ge=0, description="Padding in pixels from image borders")
+    background_color: str = Field("rgba(0,0,0,0.6)", min_length=1, description="Background color")
+    shadow_enabled: bool = Field(True, description="Enable drop shadow behind text")
+    shadow_offset_x: int = Field(2, description="Shadow horizontal offset in pixels")
+    shadow_offset_y: int = Field(2, description="Shadow vertical offset in pixels")
+    shadow_color: str = Field("black", min_length=1, description="Shadow color")
+
+
+class MetarConfig(BaseModel):
+    """METAR overlay configuration."""
+
+    enabled: bool = Field(False, description="Enable METAR overlay")
+    icao_code: str = Field(..., min_length=4, max_length=4, description="Airport ICAO code")
+    api_url: str = Field(
+        "https://aviationweather.gov/api/data/metar",
+        description="METAR API base URL",
+    )
+    raw_metar_enabled: bool = Field(True, description="Show raw METAR text block")
+
+    @field_validator("icao_code")
+    @classmethod
+    def uppercase_icao_code(cls, v: str) -> str:
+        """Convert ICAO code to uppercase."""
+        return v.upper()
+
+
+class Config(BaseModel):
+    """Root configuration model."""
+
+    camera: CameraConfig
+    location: LocationConfig
+    schedule: ScheduleConfig
+    api: ApiConfig
+    overlay: OverlayConfig
+    metar: MetarConfig
+    debug: DebugConfig | None = Field(None, description="Optional debug configuration")
+
+
+def load_config(config_path: str | None = None) -> Config:
+    """Load and validate configuration from YAML file."""
+    if config_path is None:
+        config_path = os.getenv("CONFIG_PATH", "config.yaml")
+
+    path = Path(config_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+
+    with open(path, encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+
+    config_obj = Config.model_validate(data)
+    return config_obj
+
+
+def validate_config(config: dict) -> Config:
+    """Validate configuration dictionary."""
+    return Config.model_validate(config)

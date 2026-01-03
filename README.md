@@ -1,53 +1,145 @@
 # Webcam Capture Service
 
-A Node.js/TypeScript background service for Raspberry Pi that captures images from an IP camera via RTSP/ffmpeg on a day/night schedule and uploads them to a remote API.
+A Python 3.13 background service for Raspberry Pi that captures images from an IP camera via RTSP/ffmpeg on a day/night schedule and uploads them to a remote API.
+
+**Aeronautical Compliance**: All timestamps and time calculations use UTC (Coordinated Universal Time) exclusively. No timezone conversions or daylight saving time adjustments are applied, ensuring compliance with aeronautical standards.
 
 ## Features
 
 - **Scheduled capture**: Different intervals for day and night based on sunrise/sunset
-- **RTSP capture**: Reliable frame grabbing via ffmpeg
+- **RTSP capture**: Reliable frame grabbing via ffmpeg with VIGI camera authentication support
 - **API upload**: PUT requests with retry logic and exponential backoff
 - **METAR overlay**: Optional weather information overlay from Aviation Weather API
-- **Icon support**: Add SVG icons to overlay (supports URLs, local files, or inline SVG)
+- **Icon support**: Add SVG icons to overlay (URL, local file, or inline)
+- **Debug mode**: Save captured images locally for inspection
 - **Systemd service**: Auto-start, auto-restart, journald logging
 
 ## Requirements
 
 - Raspberry Pi 4B (or similar)
-- Node.js 20+ (via nvm)
+- Python 3.13.5 (already included on Raspberry Pi)
 - ffmpeg
 - IP camera with RTSP support (e.g., VIGI C340)
 
 ## Installation
 
-### 1. Install system dependencies
+### Quick Install (One Command)
+
+**Recommended**: Use the automated installation script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/install.sh | sudo bash
+```
+
+Or if you prefer to review the script first:
+
+```bash
+# Download and review
+wget https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/install.sh
+cat install.sh
+sudo bash install.sh
+```
+
+The installer will:
+- ✅ Install system dependencies (ffmpeg, python3-pip, python3-venv)
+- ✅ Clone/download the repository to `/opt/webcam-cfp`
+- ✅ Create Python virtual environment
+- ✅ Install all Python dependencies
+- ✅ Create configuration file from example
+- ✅ Install and enable systemd service
+- ✅ Optionally start the service
+
+**After installation**, edit the configuration:
+```bash
+sudo nano /opt/webcam-cfp/config.yaml
+```
+
+Then start the service:
+```bash
+sudo systemctl start aero-pi-cam
+sudo systemctl status aero-pi-cam
+```
+
+### Uninstallation
+
+To completely remove the service (configuration files will be backed up):
+
+```bash
+sudo bash uninstall.sh
+```
+
+Or if installed from GitHub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/uninstall.sh | sudo bash
+```
+
+The uninstaller will:
+- ✅ Stop and disable the systemd service
+- ✅ Remove the service file
+- ✅ Backup your `config.yaml` to `~/aero-pi-cam-config-backup/`
+- ✅ Remove the installation directory
+- ✅ Preserve your configuration for future use
+
+### Manual Installation
+
+If you prefer to install manually:
+
+#### 1. Install system dependencies
 
 ```bash
 sudo apt update
-sudo apt install ffmpeg
+sudo apt install ffmpeg python3-pip python3-venv git
 ```
 
-### 2. Install nvm and Node.js
-
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-source ~/.bashrc
-nvm install 20
-```
-
-### 3. Clone and setup project
+#### 2. Clone and setup project
 
 ```bash
 sudo mkdir -p /opt/webcam-cfp
 sudo chown pi:pi /opt/webcam-cfp
 cd /opt/webcam-cfp
-# Copy project files here
-nvm use
-npm install
-npm run build
+git clone https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git .
 ```
 
-### 4. Configure
+#### 3. Setup Python virtual environment
+
+**Recommended**: Use a virtual environment to isolate dependencies and ensure Python 3.13.5 compatibility.
+
+**Option A: Using the setup script (recommended)**
+
+```bash
+# Make script executable (if not already)
+chmod +x setup-venv.sh
+
+# Create venv with Python 3.13.5
+./setup-venv.sh 3.13.5
+
+# Activate the virtual environment
+source venv/bin/activate
+```
+
+**Option B: Manual setup**
+
+```bash
+# Verify Python version (should be 3.13.5 on Raspberry Pi)
+python3 --version
+
+# Create virtual environment
+python3 -m venv venv
+
+# Activate the virtual environment
+source venv/bin/activate
+
+# Upgrade pip
+pip install --upgrade pip setuptools wheel
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+**Note**: The virtual environment ensures you're using the correct Python version and isolates project dependencies. The systemd service is configured to use the virtual environment automatically.
+
+#### 4. Configure
 
 ```bash
 cp config.example.yaml config.yaml
@@ -61,33 +153,59 @@ Edit the configuration:
 - `api.key`: Your API key
 - `metar.enabled`: Set to `true` to enable weather overlay
 
-### 5. Test locally
+#### 5. Install as systemd service
 
 ```bash
-npm run webcam
-```
-
-Press Ctrl+C to stop.
-
-### 6. Install as systemd service
-
-```bash
-# Update the service file with your Node.js path
-# Run: nvm which node
-# Edit webcam-cfp.service and update the paths
-
-sudo cp webcam-cfp.service /etc/systemd/system/
+sudo cp aero-pi-cam.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable webcam-cfp
-sudo systemctl start webcam-cfp
+sudo systemctl enable aero-pi-cam
+sudo systemctl start aero-pi-cam
 ```
 
-### 7. Check status and logs
+#### 6. Check status and logs
 
 ```bash
-sudo systemctl status webcam-cfp
-sudo journalctl -u webcam-cfp -f
+sudo systemctl status aero-pi-cam
+sudo journalctl -u aero-pi-cam -f
 ```
+
+## Service Management
+
+```bash
+# Start service
+sudo systemctl start aero-pi-cam
+
+# Stop service
+sudo systemctl stop aero-pi-cam
+
+# Restart service
+sudo systemctl restart aero-pi-cam
+
+# Check status
+sudo systemctl status aero-pi-cam
+
+# View logs
+sudo journalctl -u aero-pi-cam -f
+
+# Disable auto-start
+sudo systemctl disable aero-pi-cam
+
+# Enable auto-start
+sudo systemctl enable aero-pi-cam
+```
+
+## Updating
+
+To update an existing installation:
+
+```bash
+cd /opt/webcam-cfp
+sudo -u pi git pull
+sudo -u pi /opt/webcam-cfp/venv/bin/pip install -r requirements.txt
+sudo systemctl restart aero-pi-cam
+```
+
+Or re-run the installer (it will detect existing installation and update it).
 
 ## Configuration
 
@@ -95,10 +213,11 @@ See `config.example.yaml` for all options:
 
 | Section | Option | Description |
 |---------|--------|-------------|
-| camera | rtsp_url | RTSP URL with credentials |
+| camera | rtsp_url | RTSP URL (without credentials if using separate fields) |
+| camera | rtsp_user | RTSP username (optional, if not in URL) |
+| camera | rtsp_password | RTSP password (optional, if not in URL - **VIGI cameras**: use unencoded, even with special characters like `$` or `&`) |
 | location | name | Location identifier |
 | location | latitude/longitude | GPS coordinates for sun calculation |
-| location | timezone | Timezone (e.g., Europe/Paris) |
 | schedule | day_interval_minutes | Capture interval during day |
 | schedule | night_interval_minutes | Capture interval during night |
 | api | url | Upload API endpoint |
@@ -107,16 +226,6 @@ See `config.example.yaml` for all options:
 | metar | enabled | Enable/disable weather overlay |
 | metar | icao_code | Airport code for METAR data |
 | metar | icon | Optional icon configuration (url/path/svg, size, position) |
-
-### Icon Support
-
-The overlay supports adding SVG icons from [SVGRepo Dazzle Line Icons](https://www.svgrepo.com/collection/dazzle-line-icons/) or any other SVG source:
-
-- **url**: Direct URL to SVG file (e.g., from SVGRepo)
-- **path**: Local file path to SVG
-- **svg**: Inline SVG string
-- **size**: Icon size in pixels (8-128, default: 24)
-- **position**: "left" or "right" of text (default: "left")
 
 ## API Contract
 
@@ -133,6 +242,8 @@ X-Is-Day: true
 [binary JPEG data]
 ```
 
+**Note**: All timestamps are in UTC (ISO 8601 format with 'Z' suffix) for aeronautical compliance.
+
 Expected response:
 
 ```json
@@ -143,23 +254,107 @@ Expected response:
 }
 ```
 
-## Development
+## Troubleshooting
+
+### RTSP Authentication Issues (401 Unauthorized)
+
+**Problem**: Getting 401 Unauthorized errors even with correct credentials.
+
+**Solution for VIGI cameras**:
+- VIGI cameras require passwords with special characters (e.g., `$`, `&`) but reject URL-encoded passwords
+- Use separate `rtsp_user` and `rtsp_password` fields instead of embedding in URL
+- The password will be passed unencoded (as-is) to match VLC and direct ffmpeg behavior
+
+**Example**:
+```yaml
+camera:
+  rtsp_url: "rtsp://192.168.0.60:554/stream1"
+  rtsp_user: "pi"
+  rtsp_password: "password"  # Special characters OK, no encoding needed
+```
+
+**Testing**: Verify your RTSP URL works in VLC or with direct ffmpeg command:
+```bash
+ffmpeg -rtsp_transport tcp -i 'rtsp://pi:password$@192.168.0.60:554/stream1' -frames:v 1 -f image2 test.jpg
+```
+
+### Debug Mode
+
+If you're having issues with image capture or overlay, enable debug mode to save captured images locally for inspection.
+
+Edit the systemd service file to enable debug mode:
 
 ```bash
-# Install dependencies
-npm install
+sudo systemctl edit aero-pi-cam
+```
 
-# Build
-npm run build
+Add the following:
 
-# Run tests
-npm test
+```ini
+[Service]
+Environment="DEBUG_MODE=true"
+```
 
-# Lint
-npm run lint
+Then restart the service:
 
-# Format
-npm run format
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart aero-pi-cam
+```
+
+Captured images will be saved to `/opt/webcam-cfp/.debug/capture_YYYYMMDD_HHMMSS.jpg` before upload, allowing you to verify image quality and overlay rendering.
+
+### Service won't start
+
+1. Check service status:
+   ```bash
+   sudo systemctl status aero-pi-cam
+   ```
+
+2. Check logs:
+   ```bash
+   sudo journalctl -u aero-pi-cam -n 50
+   ```
+
+3. Verify configuration:
+   ```bash
+   sudo -u pi /opt/webcam-cfp/venv/bin/python -m src.main
+   ```
+
+### Configuration errors
+
+- Ensure `config.yaml` exists and is valid YAML
+- Check file permissions: `sudo chown pi:pi /opt/webcam-cfp/config.yaml`
+- Validate with: `python3 -c "from src.config import load_config; load_config('/opt/webcam-cfp/config.yaml')"`
+
+### Python/dependency issues
+
+- Recreate virtual environment:
+  ```bash
+  cd /opt/webcam-cfp
+  sudo -u pi rm -rf venv
+  sudo -u pi python3 -m venv venv
+  sudo -u pi venv/bin/pip install -r requirements.txt
+  sudo systemctl restart aero-pi-cam
+  ```
+
+### Camera connection issues
+
+- Test RTSP URL manually:
+  ```bash
+  ffmpeg -rtsp_transport tcp -i "rtsp://..." -frames:v 1 test.jpg
+  ```
+- Check camera network connectivity
+- Verify RTSP credentials
+
+### Restoring Configuration After Reinstall
+
+If you backed up your configuration:
+
+```bash
+cp ~/aero-pi-cam-config-backup/config.yaml /opt/webcam-cfp/config.yaml
+sudo chown pi:pi /opt/webcam-cfp/config.yaml
+sudo systemctl restart aero-pi-cam
 ```
 
 ## License
@@ -168,3 +363,4 @@ GPL-3.0 - See [LICENSE](LICENSE) file for details.
 
 This project is open source and available under the GNU General Public License v3.0.
 
+Copyright (C) 2026 Caen Falaise Planeurs
