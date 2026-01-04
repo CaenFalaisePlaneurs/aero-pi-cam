@@ -23,350 +23,257 @@ A Python 3.13 background service for Raspberry Pi that captures images from an I
 
 ## Installation
 
-### Pip Installation (Recommended)
+Follow these steps one by one. Copy and paste each command into your terminal.
 
-Install as a Python package from GitHub using a virtual environment. This is the recommended approach for Raspberry Pi OS as it avoids PEP 668 restrictions:
+### Step 1: Create a virtual environment
+
+This creates an isolated space for the software so it doesn't interfere with other programs:
 
 ```bash
-# Step 1: Create virtual environment (no sudo needed, no activation required)
 python3 -m venv ~/aero-pi-cam-venv
+```
 
-# Step 2: Install package using full path (no sudo needed, no activation required)
-# From main branch (stable)
+**Verify Step 1 completed successfully:**
+
+```bash
+ls -d ~/aero-pi-cam-venv && echo "✅ Virtual environment created successfully!" || echo "❌ Virtual environment creation failed. Try running: python3 -m venv ~/aero-pi-cam-venv"
+```
+
+**🎉 Congratulations! Step 1 complete. You've created the virtual environment.**
+
+---
+
+### Step 2: Install the software
+
+Copy and paste this command to install the latest stable version:
+
+```bash
 ~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git
-
-# From specific branch (e.g., develop)
-~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop
-
-# From GitHub release (e.g., v1.0.0)
-~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@v1.0.0
-
-# Step 3: Run setup (sudo needed only for systemd service and config)
-sudo aero-pi-cam-setup
 ```
 
-Or in one command:
+**Note**: This will take a few minutes. Wait for it to finish.
+
+**Verify Step 2 completed successfully:**
 
 ```bash
-# From main branch
-python3 -m venv ~/aero-pi-cam-venv && \
-~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git && \
-sudo aero-pi-cam-setup
-
-# From develop branch
-python3 -m venv ~/aero-pi-cam-venv && \
-~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop && \
-sudo aero-pi-cam-setup
-
-# From specific release
-python3 -m venv ~/aero-pi-cam-venv && \
-~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@v1.0.0 && \
-sudo aero-pi-cam-setup
+~/aero-pi-cam-venv/bin/pip list | grep aero-pi-cam && echo "✅ Package installed successfully!" || echo "❌ Package installation failed. Try running: ~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git"
 ```
 
-The setup script automatically detects the venv installation and configures the systemd service to use the correct path. Sudo is only needed for creating the systemd service file and configuration directory.
+**🎉 Congratulations! Step 2 complete. The software is now installed.**
 
-**Alternative Installation Options:**
+---
 
-**Option 1: System-wide Installation**
+### Step 3: Run the setup
 
-If you prefer system-wide installation (requires `--break-system-packages` flag on modern Debian/Ubuntu):
+This command will:
+- Install required system tools (ffmpeg, etc.)
+- Create the configuration file
+- Set up the service to run automatically
+
+**Important**: This command needs root privileges to write system files. Use `sudo` without `-u`:
 
 ```bash
-sudo pip install --break-system-packages git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop
-sudo aero-pi-cam-setup
+sudo /home/$(whoami)/aero-pi-cam-venv/bin/python -m aero_pi_cam.setup
 ```
 
-**Option 2: Development/Testing (No Service)**
+You'll be asked for your password (for `sudo`). Type it and press Enter.
 
-For testing without systemd service:
+**Verify Step 3 completed successfully:**
 
 ```bash
-python3 -m venv ~/aero-pi-cam-venv
-source ~/aero-pi-cam-venv/bin/activate
-pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop
-webcam
+ls /etc/aero-pi-cam/config.yaml && echo "✅ Setup completed successfully!" || echo "❌ Setup failed. Try running: sudo /home/$(whoami)/aero-pi-cam-venv/bin/python -m aero_pi_cam.setup"
 ```
 
-**Note**: GitHub releases are created from tags, so installing from a release uses the same syntax as installing from a tag. Find available releases and their tags on the [GitHub Releases page](https://github.com/CaenFalaisePlaneurs/aero-pi-cam/releases).
+**🎉 Congratulations! Step 3 complete. The system is configured and ready.**
 
-The setup command will:
-- ✅ Check and install system dependencies (ffmpeg, libcairo2-dev)
-- ✅ Create systemd service file
-- ✅ Create configuration template at `/etc/aero-pi-cam/config.yaml`
-- ✅ Enable and optionally start the service
+---
 
-**After installation**, edit the configuration:
+### Step 4: Configure the software
+
+Edit the configuration file with your camera and API settings:
+
 ```bash
 sudo nano /etc/aero-pi-cam/config.yaml
 ```
 
-Then start the service (if not already started):
-```bash
-sudo systemctl start aero-pi-cam
-sudo systemctl status aero-pi-cam
-```
-
-### Uninstallation (Pip Install)
-
-To uninstall the package:
-
-```bash
-# Step 1: Stop and disable the service (recommended)
-sudo aero-pi-cam-uninstall
-
-# Step 2: Remove the Python package (this will also remove the systemd service file)
-sudo pip uninstall aero-pi-cam
-```
-
-Or in one command:
-
-```bash
-sudo aero-pi-cam-uninstall && sudo pip uninstall aero-pi-cam
-```
-
-The uninstall process will:
-- ✅ Stop and disable the systemd service (via `aero-pi-cam-uninstall`)
-- ✅ Remove the systemd service file (automatically via `pip uninstall`)
-- ✅ Remove Python package files
-- ✅ **Preserve** configuration file at `/etc/aero-pi-cam/config.yaml` (following Debian FHS best practices)
-
-**Note**: The `aero-pi-cam-uninstall` command prepares the system for uninstallation by stopping the service. The actual file removal is handled by `pip uninstall`, which automatically removes files installed via `data_files` (including the systemd service file).
-
-### Quick Install (One Command - Legacy Method)
-
-**Alternative**: Use the automated installation script:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/install.sh | sudo bash
-```
-
-Or if you prefer to review the script first:
-
-```bash
-# Download and review
-wget https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/install.sh
-cat install.sh
-sudo bash install.sh
-```
-
-The installer will:
-- ✅ Install system dependencies (ffmpeg, python3-pip, python3-venv)
-- ✅ Clone/download the repository to `/opt/webcam-cfp`
-- ✅ Create Python virtual environment
-- ✅ Install all Python dependencies
-- ✅ Create configuration file from example
-- ✅ Install and enable systemd service
-- ✅ Optionally start the service
-
-**After installation**, edit the configuration:
-```bash
-sudo nano /etc/aero-pi-cam/config.yaml
-```
-
-Then start the service:
-```bash
-sudo systemctl start aero-pi-cam
-sudo systemctl status aero-pi-cam
-```
-
-### Uninstallation (Legacy Method)
-
-If you installed using the install script, use the uninstall script:
-
-```bash
-sudo bash uninstall.sh
-```
-
-Or if installed from GitHub:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/uninstall.sh | sudo bash
-```
-
-The uninstaller will:
-- ✅ Stop and disable the systemd service
-- ✅ Remove the service file
-- ✅ Remove the installation directory
-- ✅ Preserve your configuration at `/etc/aero-pi-cam/config.yaml` (following Debian best practices)
-
-### Manual Installation
-
-If you prefer to install manually:
-
-#### 1. Install system dependencies
-
-```bash
-sudo apt update
-sudo apt install ffmpeg python3-pip python3-venv git
-```
-
-#### 2. Clone and setup project
-
-```bash
-sudo mkdir -p /opt/webcam-cfp
-sudo chown pi:pi /opt/webcam-cfp
-cd /opt/webcam-cfp
-git clone https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git .
-```
-
-#### 3. Setup Python virtual environment
-
-**Recommended**: Use a virtual environment to isolate dependencies and ensure Python 3.13.5 compatibility.
-
-**Option A: Using the setup script (recommended)**
-
-```bash
-# Make script executable (if not already)
-chmod +x setup-venv.sh
-
-# Create venv with Python 3.13.5
-./setup-venv.sh 3.13.5
-
-# Activate the virtual environment
-source venv/bin/activate
-```
-
-**Option B: Manual setup**
-
-```bash
-# Verify Python version (should be 3.13.5 on Raspberry Pi)
-python3 --version
-
-# Create virtual environment
-python3 -m venv venv
-
-# Activate the virtual environment
-source venv/bin/activate
-
-# Upgrade pip
-pip install --upgrade pip setuptools wheel
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-**Note**: The virtual environment ensures you're using the correct Python version and isolates project dependencies. The systemd service is configured to use the virtual environment automatically.
-
-#### 4. Configure
-
-```bash
-sudo mkdir -p /etc/aero-pi-cam
-sudo cp config.example.yaml /etc/aero-pi-cam/config.yaml
-sudo nano /etc/aero-pi-cam/config.yaml
-sudo chown pi:pi /etc/aero-pi-cam/config.yaml
-sudo chmod 600 /etc/aero-pi-cam/config.yaml
-```
-
-Edit the configuration:
-- `camera.rtsp_url`: Your camera's RTSP URL
-- `location`: GPS coordinates for sunrise/sunset calculation
-- `api.url`: Your upload API endpoint (optional - uses dummy server if not set)
+**What to change:**
+- `camera.rtsp_url`: Your camera's RTSP address (e.g., `rtsp://192.168.1.100:554/stream1`)
+- `camera.rtsp_user`: Your camera's username
+- `camera.rtsp_password`: Your camera's password
+- `location.name`: Your location name (e.g., `LFAS`)
+- `location.latitude` and `location.longitude`: Your GPS coordinates
+- `api.url`: Your upload API address (leave empty to use test mode)
 - `api.key`: Your API key
-- `metar.enabled`: Set to `true` to enable weather overlay
 
-#### 5. Install as systemd service
+Press `Ctrl+X`, then `Y`, then `Enter` to save and exit.
+
+**Verify Step 4 completed successfully:**
 
 ```bash
-sudo cp aero-pi-cam.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable aero-pi-cam
+grep -q "rtsp_url" /etc/aero-pi-cam/config.yaml && echo "✅ Configuration file looks good!" || echo "❌ Configuration file not found or incomplete. Try running: sudo nano /etc/aero-pi-cam/config.yaml"
+```
+
+**🎉 Congratulations! Step 4 complete. Your configuration is saved.**
+
+---
+
+### Step 5: Start the service
+
+Start the webcam service:
+
+```bash
 sudo systemctl start aero-pi-cam
 ```
 
-#### 6. Check status and logs
+**Verify Step 5 completed successfully:**
+
+```bash
+sudo systemctl is-active aero-pi-cam && echo "✅ Service started successfully!" || echo "❌ Service failed to start. Check logs with: sudo journalctl -u aero-pi-cam -n 50"
+```
+
+**🎉 Congratulations! Step 5 complete. The service is now running.**
+
+---
+
+### Step 6: Check if it's working
+
+Verify the service is running properly:
 
 ```bash
 sudo systemctl status aero-pi-cam
+```
+
+You should see "active (running)" in green. Press `Q` to exit.
+
+**Verify Step 6 completed successfully:**
+
+```bash
+sudo systemctl is-active aero-pi-cam && echo "✅ Service is running perfectly!" || echo "❌ Service is not running. Try restarting with: sudo systemctl restart aero-pi-cam"
+```
+
+If you see "✅ Service is running perfectly!", everything is working! ✅
+
+**🎉🎉🎉 Congratulations! Installation complete! 🎉🎉🎉**
+
+The webcam will now capture images automatically according to your schedule. You're all set!
+
+---
+
+## Viewing Logs
+
+To see what the service is doing:
+
+```bash
 sudo journalctl -u aero-pi-cam -f
 ```
+
+Press `Ctrl+C` to stop viewing logs.
+
+---
 
 ## Service Management
 
+### Start the service
+
 ```bash
-# Start service
 sudo systemctl start aero-pi-cam
+```
 
-# Stop service
+### Stop the service
+
+```bash
 sudo systemctl stop aero-pi-cam
+```
 
-# Restart service
+### Restart the service
+
+```bash
 sudo systemctl restart aero-pi-cam
+```
 
-# Check status
+### Check service status
+
+```bash
 sudo systemctl status aero-pi-cam
+```
 
-# View logs
+### View logs
+
+```bash
 sudo journalctl -u aero-pi-cam -f
+```
 
-# Disable auto-start
+### Disable auto-start
+
+```bash
 sudo systemctl disable aero-pi-cam
+```
 
-# Enable auto-start
+### Enable auto-start
+
+```bash
 sudo systemctl enable aero-pi-cam
 ```
 
-## Updating
+---
 
-To update an existing installation:
+## Troubleshooting
+
+### Service won't start
+
+Check what went wrong:
 
 ```bash
-cd /opt/webcam-cfp
-sudo -u pi git pull
-sudo -u pi /opt/webcam-cfp/venv/bin/pip install -r requirements.txt
+sudo journalctl -u aero-pi-cam -n 50
+```
+
+### Restart the service
+
+If something isn't working, try restarting:
+
+```bash
 sudo systemctl restart aero-pi-cam
 ```
 
-Or re-run the installer (it will detect existing installation and update it).
+### Check service status
 
-## Configuration
-
-See `config.example.yaml` for all options:
-
-| Section | Option | Description |
-|---------|--------|-------------|
-| camera | rtsp_url | RTSP URL (without credentials if using separate fields) |
-| camera | rtsp_user | RTSP username (optional, if not in URL) |
-| camera | rtsp_password | RTSP password (optional, if not in URL - **VIGI cameras**: use unencoded, even with special characters like `$` or `&`) |
-| location | name | Location identifier |
-| location | latitude/longitude | GPS coordinates for sun calculation |
-| schedule | day_interval_minutes | Capture interval during day |
-| schedule | night_interval_minutes | Capture interval during night |
-| api | url | Upload API endpoint |
-| api | key | Bearer token for authentication |
-| api | timeout_seconds | Request timeout |
-| metar | enabled | Enable/disable weather overlay |
-| metar | icao_code | Airport code for METAR data |
-| metar | icon | Optional icon configuration (url/path/svg, size, position) |
-
-## API Contract
-
-The service uploads images using this format:
-
-```
-PUT /api/webcam/image
-Authorization: Bearer {api_key}
-Content-Type: image/jpeg
-X-Capture-Timestamp: 2026-01-02T15:30:00Z
-X-Location: LFAS
-X-Is-Day: true
-
-[binary JPEG data]
+```bash
+sudo systemctl status aero-pi-cam
 ```
 
-**Note**: All timestamps are in UTC (ISO 8601 format with 'Z' suffix) for aeronautical compliance.
+### Configuration errors
 
-Expected response:
+Ensure `config.yaml` exists and is valid YAML at `/etc/aero-pi-cam/config.yaml`
 
-```json
-{
-  "id": "uuid",
-  "received_at": "2026-01-02T15:30:05Z",
-  "size_bytes": 245000
-}
+Check file permissions:
+```bash
+sudo chown pi:pi /etc/aero-pi-cam/config.yaml
 ```
 
-## Troubleshooting
+Validate with:
+```bash
+python3 -c "from aero_pi_cam.config import load_config; load_config('/etc/aero-pi-cam/config.yaml')"
+```
+
+### Python/dependency issues
+
+Recreate virtual environment:
+```bash
+cd /opt/webcam-cfp
+sudo -u pi rm -rf venv
+sudo -u pi python3 -m venv venv
+sudo -u pi venv/bin/pip install -r requirements.txt
+sudo systemctl restart aero-pi-cam
+```
+
+### Camera connection issues
+
+Test RTSP URL manually:
+```bash
+ffmpeg -rtsp_transport tcp -i "rtsp://..." -frames:v 1 test.jpg
+```
+
+Check camera network connectivity and verify RTSP credentials.
 
 ### RTSP Authentication Issues (401 Unauthorized)
 
@@ -403,22 +310,23 @@ Debug mode uses a local dummy API server for testing, eliminating the need for a
 **Enable debug mode:**
 
 Edit the systemd service file:
-
 ```bash
 sudo systemctl edit aero-pi-cam
 ```
 
 Add the following:
-
 ```ini
 [Service]
 Environment="DEBUG_MODE=true"
 ```
 
-Then restart the service:
-
+Reload systemd:
 ```bash
 sudo systemctl daemon-reload
+```
+
+Restart the service:
+```bash
 sudo systemctl restart aero-pi-cam
 ```
 
@@ -430,48 +338,27 @@ sudo systemctl restart aero-pi-cam
 **Testing without API:**
 You can also test without an API by leaving `api.url` unset in `config.yaml`. The dummy server will automatically be used.
 
-### Service won't start
+---
 
-1. Check service status:
-   ```bash
-   sudo systemctl status aero-pi-cam
-   ```
+## Configuration
 
-2. Check logs:
-   ```bash
-   sudo journalctl -u aero-pi-cam -n 50
-   ```
+See `config.example.yaml` for all options:
 
-3. Verify configuration:
-   ```bash
-   sudo -u pi /opt/webcam-cfp/venv/bin/python -m src.main
-   ```
-
-### Configuration errors
-
-- Ensure `config.yaml` exists and is valid YAML at `/etc/aero-pi-cam/config.yaml`
-- Check file permissions: `sudo chown pi:pi /etc/aero-pi-cam/config.yaml`
-- Validate with: `python3 -c "from aero_pi_cam.config import load_config; load_config('/etc/aero-pi-cam/config.yaml')"`
-
-### Python/dependency issues
-
-- Recreate virtual environment:
-  ```bash
-  cd /opt/webcam-cfp
-  sudo -u pi rm -rf venv
-  sudo -u pi python3 -m venv venv
-  sudo -u pi venv/bin/pip install -r requirements.txt
-  sudo systemctl restart aero-pi-cam
-  ```
-
-### Camera connection issues
-
-- Test RTSP URL manually:
-  ```bash
-  ffmpeg -rtsp_transport tcp -i "rtsp://..." -frames:v 1 test.jpg
-  ```
-- Check camera network connectivity
-- Verify RTSP credentials
+| Section | Option | Description |
+|---------|--------|-------------|
+| camera | rtsp_url | RTSP URL (without credentials if using separate fields) |
+| camera | rtsp_user | RTSP username (optional, if not in URL) |
+| camera | rtsp_password | RTSP password (optional, if not in URL - **VIGI cameras**: use unencoded, even with special characters like `$` or `&`) |
+| location | name | Location identifier |
+| location | latitude/longitude | GPS coordinates for sun calculation |
+| schedule | day_interval_minutes | Capture interval during day |
+| schedule | night_interval_minutes | Capture interval during night |
+| api | url | Upload API endpoint |
+| api | key | Bearer token for authentication |
+| api | timeout_seconds | Request timeout |
+| metar | enabled | Enable/disable weather overlay |
+| metar | icao_code | Airport code for METAR data |
+| metar | icon | Optional icon configuration (url/path/svg, size, position) |
 
 ### Configuration Location
 
@@ -490,21 +377,162 @@ sudo nano /etc/aero-pi-cam/config.yaml
 You can override the configuration file path using:
 
 1. **Command-line argument** (highest priority):
-   ```bash
-   python -m src.main --config /path/to/custom-config.yaml
-   # or short form:
-   python -m src.main -c /path/to/custom-config.yaml
-   ```
+```bash
+python -m src.main --config /path/to/custom-config.yaml
+```
+
+Or short form:
+```bash
+python -m src.main -c /path/to/custom-config.yaml
+```
 
 2. **Environment variable**:
-   ```bash
-   export CONFIG_PATH=/path/to/custom-config.yaml
-   python -m src.main
-   ```
+```bash
+export CONFIG_PATH=/path/to/custom-config.yaml
+python -m src.main
+```
 
 3. **Default**: `/etc/aero-pi-cam/config.yaml` (when running as systemd service) or `config.yaml` (when running manually from project directory)
 
 The precedence order is: command-line argument > environment variable > default.
+
+---
+
+## API Contract
+
+The service uploads images using this format:
+
+```
+PUT /api/webcam/image
+Authorization: Bearer {api_key}
+Content-Type: image/jpeg
+X-Capture-Timestamp: 2026-01-02T15:30:00Z
+X-Location: LFAS
+X-Is-Day: true
+
+[binary JPEG data]
+```
+
+**Note**: All timestamps are in UTC (ISO 8601 format with 'Z' suffix) for aeronautical compliance.
+
+Expected response:
+
+```json
+{
+  "id": "uuid",
+  "received_at": "2026-01-02T15:30:05Z",
+  "size_bytes": 245000
+}
+```
+
+---
+
+## Advanced Options
+
+### Install from a specific branch (e.g., develop)
+
+```bash
+~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop
+```
+
+### Install from a specific release
+
+```bash
+~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@v1.0.0
+```
+
+### System-wide installation (alternative method)
+
+```bash
+sudo pip install --break-system-packages git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop
+sudo aero-pi-cam-setup
+```
+
+### Uninstallation
+
+**What gets removed:**
+- ✅ Python package files
+- ✅ Systemd service file (`/etc/systemd/system/aero-pi-cam.service`)
+- ✅ Service is stopped and disabled
+
+**What is preserved (intentionally):**
+- 📁 Configuration file (`/etc/aero-pi-cam/config.yaml`) - following Debian best practices
+- 📁 Virtual environment directory (`~/aero-pi-cam-venv`) - you can remove it manually if desired
+- 📁 Any log files or debug images created during runtime
+
+**If installed in virtual environment:**
+
+Step 1: Stop and disable the service (recommended)
+
+**Important**: This command needs root privileges. Use `sudo` without `-u`:
+
+```bash
+sudo /home/$(whoami)/aero-pi-cam-venv/bin/python -m aero_pi_cam.uninstall
+```
+
+Or if you know your username (replace 'lfas' with your username):
+```bash
+sudo /home/lfas/aero-pi-cam-venv/bin/python -m aero_pi_cam.uninstall
+```
+
+**Verify Step 1 completed successfully:**
+```bash
+sudo systemctl is-active aero-pi-cam 2>&1 | grep -q "inactive" && echo "✅ Service stopped successfully!" || echo "❌ Service stop failed. Try running: sudo systemctl stop aero-pi-cam"
+```
+
+**🎉 Step 1 complete. Service stopped and disabled.**
+
+---
+
+Step 2: Remove the Python package (this will also remove the systemd service file)
+
+**Important**: Use the full path to the venv's pip, not just `pip`:
+```bash
+~/aero-pi-cam-venv/bin/pip uninstall aero-pi-cam
+```
+
+**Verify Step 2 completed successfully:**
+```bash
+~/aero-pi-cam-venv/bin/pip list | grep aero-pi-cam && echo "❌ Package removal failed. Try running: ~/aero-pi-cam-venv/bin/pip uninstall aero-pi-cam" || echo "✅ Package removed successfully!"
+```
+
+**🎉 Step 2 complete. Package and service file removed.**
+
+---
+
+Step 3: Remove the virtual environment (optional, for complete cleanup)
+
+If you want to completely remove everything including the virtual environment:
+```bash
+rm -rf ~/aero-pi-cam-venv
+```
+
+**Verify Step 3 completed successfully:**
+```bash
+ls ~/aero-pi-cam-venv 2>&1 | grep -q "No such file" && echo "✅ Virtual environment removed successfully!" || echo "❌ Virtual environment removal failed. Try running: rm -rf ~/aero-pi-cam-venv"
+```
+
+**🎉 Step 3 complete. Virtual environment removed.**
+
+---
+
+**If installed system-wide:**
+
+Step 1: Stop and disable the service (recommended)
+```bash
+sudo aero-pi-cam-uninstall
+```
+
+Step 2: Remove the Python package (this will also remove the systemd service file)
+```bash
+sudo pip uninstall aero-pi-cam
+```
+
+**Note**: For complete cleanup, you may also want to manually remove:
+- Configuration file: `sudo rm /etc/aero-pi-cam/config.yaml` (if you don't want to keep it)
+- Configuration directory: `sudo rmdir /etc/aero-pi-cam` (if empty)
+
+---
 
 ## License
 

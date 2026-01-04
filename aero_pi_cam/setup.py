@@ -1,9 +1,11 @@
 """Setup module for aero-pi-cam system configuration."""
 
 import os
+import pwd
 import shutil
 import subprocess
 import sys
+from importlib import resources
 from pathlib import Path
 
 
@@ -77,6 +79,47 @@ def install_system_dependencies(missing: list[str]) -> bool:
         return False
 
 
+def is_docker_environment() -> bool:
+    """Check if running in Docker container.
+    
+    Returns:
+        True if running in Docker, False otherwise
+    """
+    # Check for Docker-specific files
+    if Path("/.dockerenv").exists():
+        return True
+    # Check if systemd is not available (Docker typically doesn't run systemd)
+    try:
+        result = subprocess.run(
+            ["systemctl", "--version"],
+            capture_output=True,
+            timeout=1,
+            check=False,
+        )
+        return result.returncode != 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return True
+    return False
+
+
+def get_current_user() -> str:
+    """Get the current username.
+    
+    Returns:
+        Username as string, defaults to 'pi' if cannot be determined
+    """
+    try:
+        # Try to get from environment
+        user = os.environ.get("USER") or os.environ.get("USERNAME")
+        if user:
+            return user
+        # Try to get from system
+        return pwd.getpwuid(os.getuid()).pw_name
+    except (KeyError, AttributeError):
+        # Default to 'pi' for Raspberry Pi compatibility
+        return "pi"
+
+
 def find_webcam_executable() -> str:
     """Find the webcam executable path.
 
@@ -142,12 +185,37 @@ def create_systemd_service() -> bool:
     Returns:
         True if service file was created/updated, False otherwise
     """
+    # Skip systemd service creation in Docker (systemd not available)
+    if is_docker_environment():
+        print("Skipping systemd service setup (Docker environment detected)")
+        print("Note: In Docker, the application runs directly, not via systemd")
+        return True
+    
     service_name = "aero-pi-cam"
-    service_file_source = Path(__file__).parent.parent / "aero-pi-cam.service"
     service_file_dest = Path(f"/etc/systemd/system/{service_name}.service")
-
-    if not service_file_source.exists():
-        print(f"Error: Service file not found at {service_file_source}")
+    
+    # Get current user (or default to 'pi' for Raspberry Pi)
+    service_user = get_current_user()
+    
+    # Try to find existing service file from various locations
+    possible_locations = [
+        # If running from source, check repository root
+        Path(__file__).parent.parent / "aero-pi-cam.service",
+        # If installed as package, check parent directories
+        Path(__file__).parent.parent.parent / "aero-pi-cam.service",
+        # Check if already installed at destination
+        service_file_dest,
+    ]
+    
+    service_file_source = None
+    for location in possible_locations:
+        if location.exists() and location != service_file_dest:
+            service_file_source = location
+            break
+    
+    if service_file_source is None:
+        print("Error: Could not find aero-pi-cam.service file.")
+        print("Please ensure the package is properly installed.")
         return False
 
     try:
@@ -161,37 +229,56 @@ def create_systemd_service() -> bool:
         webcam_executable = find_webcam_executable()
         print(f"Detected webcam executable: {webcam_executable}")
 
-        # Read and update service file
+        # Read service file content from the actual file
         service_content = service_file_source.read_text()
 
-        # Replace the ExecStart line to use the webcam command
-        # Find the ExecStart line and replace it
+        # Update the service file content with detected values
         lines = service_content.split("\n")
         updated_lines = []
         exec_start_found = False
+        user_found = False
 
         for line in lines:
             if line.strip().startswith("ExecStart="):
                 # Use the detected webcam executable path
                 updated_lines.append(f"ExecStart={webcam_executable}")
                 exec_start_found = True
+            elif line.strip().startswith("User="):
+                # Use the detected user
+                updated_lines.append(f"User={service_user}")
+                user_found = True
             elif line.strip().startswith("WorkingDirectory="):
                 # Remove or comment out WorkingDirectory for pip-installed package
-                # updated_lines.append("# WorkingDirectory removed for pip-installed package")
                 pass
             elif line.strip().startswith("Environment=") and "PATH=" in line:
                 # Remove PATH override for pip-installed package
-                # updated_lines.append("# PATH override removed for pip-installed package")
                 pass
             else:
                 updated_lines.append(line)
 
         if not exec_start_found:
-            # Add ExecStart if not found
-            updated_lines.insert(
-                len([line for line in updated_lines if line.strip().startswith("[Service]")]) + 1,
-                f"ExecStart={webcam_executable}",
-            )
+            # Add ExecStart if not found (insert after [Service] line)
+            service_idx = -1
+            for i, line in enumerate(updated_lines):
+                if line.strip().startswith("[Service]"):
+                    service_idx = i
+                    break
+            if service_idx >= 0:
+                updated_lines.insert(service_idx + 1, f"ExecStart={webcam_executable}")
+            else:
+                updated_lines.append(f"ExecStart={webcam_executable}")
+        
+        if not user_found:
+            # Add User if not found (insert after [Service] line)
+            service_idx = -1
+            for i, line in enumerate(updated_lines):
+                if line.strip().startswith("[Service]"):
+                    service_idx = i
+                    break
+            if service_idx >= 0:
+                updated_lines.insert(service_idx + 1, f"User={service_user}")
+            else:
+                updated_lines.append(f"User={service_user}")
 
         # Write updated service file
         service_file_dest.parent.mkdir(parents=True, exist_ok=True)
@@ -212,6 +299,28 @@ def create_systemd_service() -> bool:
         return False
 
 
+def get_config_example_content() -> str | None:
+    """Get the content of config.example.yaml from the package or repository.
+    
+    Returns:
+        Config file content as string, or None if not found
+    """
+    # Try to find example config from various locations
+    possible_locations = [
+        # If running from source, check repository root
+        Path(__file__).parent.parent / "config.example.yaml",
+        # If installed as package, check parent directories
+        Path(__file__).parent.parent.parent / "config.example.yaml",
+    ]
+    
+    # Check file system locations
+    for location in possible_locations:
+        if location.exists():
+            return location.read_text()
+    
+    return None
+
+
 def create_config_template() -> bool:
     """Create configuration file template if it doesn't exist.
 
@@ -220,14 +329,17 @@ def create_config_template() -> bool:
     """
     config_dir = Path("/etc/aero-pi-cam")
     config_file = config_dir / "config.yaml"
-    example_config = Path(__file__).parent.parent / "config.example.yaml"
 
     if config_file.exists():
         print(f"✓ Configuration file already exists: {config_file}")
         return True
 
-    if not example_config.exists():
-        print(f"Warning: Example config not found at {example_config}")
+    # Get config example content from the actual file
+    config_content = get_config_example_content()
+    
+    if config_content is None:
+        print("Error: Could not find config.example.yaml file.")
+        print("Please ensure the package is properly installed.")
         return False
 
     try:
@@ -240,8 +352,9 @@ def create_config_template() -> bool:
         # Create config directory
         config_dir.mkdir(parents=True, exist_ok=True)
 
-        # Copy example config
-        shutil.copy(example_config, config_file)
+        # Write config content from the actual config.example.yaml file
+        config_file.write_text(config_content)
+        
         print(f"✓ Created configuration template: {config_file}")
         print(f"⚠ Please edit {config_file} before starting the service")
         return True
@@ -260,6 +373,11 @@ def enable_and_start_service() -> bool:
     Returns:
         True if service was enabled, False otherwise
     """
+    # Skip systemd service management in Docker
+    if is_docker_environment():
+        print("Skipping systemd service management (Docker environment detected)")
+        return True
+    
     service_name = "aero-pi-cam"
 
     try:

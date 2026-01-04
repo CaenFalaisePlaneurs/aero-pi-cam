@@ -19,11 +19,14 @@ def get_service_file_path() -> Path:
 # Read package files for data_files
 # Note: Path must be relative to setup.py directory
 service_file = get_service_file_path()
+config_example = Path(__file__).parent / "config.example.yaml"
 data_files = []
 if service_file.exists():
     # Use relative path from setup.py directory
     service_file_rel = service_file.relative_to(Path(__file__).parent)
     data_files = [("etc/systemd/system", [str(service_file_rel)])]
+# Note: config.example.yaml is included via MANIFEST.in and will be accessible
+# via importlib.resources in the setup script
 
 # Minimal setup() call - metadata comes from pyproject.toml
 setup(
