@@ -23,24 +23,25 @@ A Python 3.13 background service for Raspberry Pi that captures images from an I
 
 ## Installation
 
-### Pip Installation (Recommended for Python Package)
+### Pip Installation (Recommended)
 
-**New**: Install as a Python package from GitHub:
+Install as a Python package from GitHub using a virtual environment. This is the recommended approach for Raspberry Pi OS as it avoids PEP 668 restrictions:
 
 ```bash
-# Install from main branch (stable)
-pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git
+# Step 1: Create virtual environment (no sudo needed, no activation required)
+python3 -m venv ~/aero-pi-cam-venv
 
-# Install from specific branch (e.g., develop)
-pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop
+# Step 2: Install package using full path (no sudo needed, no activation required)
+# From main branch (stable)
+~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git
 
-# Install from GitHub release (uses the release tag, e.g., v1.0.0)
-pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@v1.0.0
+# From specific branch (e.g., develop)
+~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop
 
-# Install from specific commit
-pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@abc123def
+# From GitHub release (e.g., v1.0.0)
+~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@v1.0.0
 
-# Run setup (installs system deps, creates service, config)
+# Step 3: Run setup (sudo needed only for systemd service and config)
 sudo aero-pi-cam-setup
 ```
 
@@ -48,13 +49,43 @@ Or in one command:
 
 ```bash
 # From main branch
-sudo pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git && sudo aero-pi-cam-setup
+python3 -m venv ~/aero-pi-cam-venv && \
+~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git && \
+sudo aero-pi-cam-setup
 
 # From develop branch
-sudo pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop && sudo aero-pi-cam-setup
+python3 -m venv ~/aero-pi-cam-venv && \
+~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop && \
+sudo aero-pi-cam-setup
 
-# From specific release (e.g., v1.0.0)
-sudo pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@v1.0.0 && sudo aero-pi-cam-setup
+# From specific release
+python3 -m venv ~/aero-pi-cam-venv && \
+~/aero-pi-cam-venv/bin/pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@v1.0.0 && \
+sudo aero-pi-cam-setup
+```
+
+The setup script automatically detects the venv installation and configures the systemd service to use the correct path. Sudo is only needed for creating the systemd service file and configuration directory.
+
+**Alternative Installation Options:**
+
+**Option 1: System-wide Installation**
+
+If you prefer system-wide installation (requires `--break-system-packages` flag on modern Debian/Ubuntu):
+
+```bash
+sudo pip install --break-system-packages git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop
+sudo aero-pi-cam-setup
+```
+
+**Option 2: Development/Testing (No Service)**
+
+For testing without systemd service:
+
+```bash
+python3 -m venv ~/aero-pi-cam-venv
+source ~/aero-pi-cam-venv/bin/activate
+pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop
+webcam
 ```
 
 **Note**: GitHub releases are created from tags, so installing from a release uses the same syntax as installing from a tag. Find available releases and their tags on the [GitHub Releases page](https://github.com/CaenFalaisePlaneurs/aero-pi-cam/releases).

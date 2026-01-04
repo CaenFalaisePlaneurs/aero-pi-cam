@@ -77,6 +77,65 @@ def install_system_dependencies(missing: list[str]) -> bool:
         return False
 
 
+def find_webcam_executable() -> str:
+    """Find the webcam executable path.
+
+    Checks if installed in a virtual environment or system-wide by finding
+    where the aero_pi_cam package is installed.
+
+    Returns:
+        Path to webcam executable
+    """
+    import shutil
+
+    try:
+        # Try to import the package and find its location
+        import aero_pi_cam
+
+        package_path = Path(aero_pi_cam.__file__).parent
+        # Check if package is in a venv (venv typically has 'site-packages' in path)
+        if "site-packages" in str(package_path) or "dist-packages" in str(package_path):
+            # Extract venv root from package path
+            # e.g., /opt/aero-pi-cam-venv/lib/python3.13/site-packages/aero_pi_cam
+            path_parts = package_path.parts
+            for i, part in enumerate(path_parts):
+                if part in ("site-packages", "dist-packages"):
+                    # Go up to find venv root (typically 3 levels up: site-packages -> lib -> python3.x -> venv)
+                    if i >= 2:
+                        venv_root = Path(*path_parts[: i - 2])
+                        venv_webcam = venv_root / "bin" / "webcam"
+                        if venv_webcam.exists():
+                            return str(venv_webcam)
+                    break
+    except ImportError:
+        pass
+
+    # Check if we're running from a venv (environment variable)
+    venv_python = os.environ.get("VIRTUAL_ENV")
+    if venv_python:
+        venv_bin = Path(venv_python) / "bin" / "webcam"
+        if venv_bin.exists():
+            return str(venv_bin)
+
+    # Check common venv locations
+    common_venv_paths = [
+        "/opt/aero-pi-cam-venv/bin/webcam",
+        "/opt/webcam-cfp/venv/bin/webcam",
+        "/usr/local/aero-pi-cam-venv/bin/webcam",
+    ]
+    for venv_path in common_venv_paths:
+        if Path(venv_path).exists():
+            return venv_path
+
+    # Check if webcam is in system PATH
+    webcam_path = shutil.which("webcam")
+    if webcam_path:
+        return webcam_path
+
+    # Default to system installation
+    return "/usr/bin/webcam"
+
+
 def create_systemd_service() -> bool:
     """Create systemd service file.
 
@@ -98,6 +157,10 @@ def create_systemd_service() -> bool:
             print("Please run: sudo aero-pi-cam-setup")
             return False
 
+        # Find webcam executable (detects venv or system installation)
+        webcam_executable = find_webcam_executable()
+        print(f"Detected webcam executable: {webcam_executable}")
+
         # Read and update service file
         service_content = service_file_source.read_text()
 
@@ -109,8 +172,8 @@ def create_systemd_service() -> bool:
 
         for line in lines:
             if line.strip().startswith("ExecStart="):
-                # Use the webcam command from entry point
-                updated_lines.append("ExecStart=/usr/bin/webcam")
+                # Use the detected webcam executable path
+                updated_lines.append(f"ExecStart={webcam_executable}")
                 exec_start_found = True
             elif line.strip().startswith("WorkingDirectory="):
                 # Remove or comment out WorkingDirectory for pip-installed package
@@ -127,7 +190,7 @@ def create_systemd_service() -> bool:
             # Add ExecStart if not found
             updated_lines.insert(
                 len([line for line in updated_lines if line.strip().startswith("[Service]")]) + 1,
-                "ExecStart=/usr/bin/webcam",
+                f"ExecStart={webcam_executable}",
             )
 
         # Write updated service file
