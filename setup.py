@@ -25,8 +25,10 @@ if service_file.exists():
     # Use relative path from setup.py directory
     service_file_rel = service_file.relative_to(Path(__file__).parent)
     data_files = [("etc/systemd/system", [str(service_file_rel)])]
-# Note: config.example.yaml is included via MANIFEST.in and will be accessible
-# via importlib.resources in the setup script
+# Install config.example.yaml to /usr/share/aero-pi-cam/ for access during setup
+if config_example.exists():
+    config_example_rel = config_example.relative_to(Path(__file__).parent)
+    data_files.append(("usr/share/aero-pi-cam", [str(config_example_rel)]))
 
 # Minimal setup() call - metadata comes from pyproject.toml
 setup(

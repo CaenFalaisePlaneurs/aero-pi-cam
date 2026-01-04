@@ -5,7 +5,6 @@ import pwd
 import shutil
 import subprocess
 import sys
-from importlib import resources
 from pathlib import Path
 
 
@@ -198,24 +197,64 @@ def create_systemd_service() -> bool:
     service_user = get_current_user()
     
     # Try to find existing service file from various locations
+    # Note: When installed via pip from git, the file is installed to /etc/systemd/system/
+    # via data_files, but the source file may not be accessible. We can use the installed
+    # file as a source if it exists.
     possible_locations = [
         # If running from source, check repository root
         Path(__file__).parent.parent / "aero-pi-cam.service",
         # If installed as package, check parent directories
         Path(__file__).parent.parent.parent / "aero-pi-cam.service",
-        # Check if already installed at destination
+        # Check if already installed at destination (use it as source if it exists)
+        # This is important when installing via pip from git
         service_file_dest,
     ]
     
     service_file_source = None
     for location in possible_locations:
-        if location.exists() and location != service_file_dest:
+        if location.exists():
             service_file_source = location
             break
     
     if service_file_source is None:
+        # Try to find it using the package location (when installed via pip from git)
+        try:
+            import aero_pi_cam
+            package_path = Path(aero_pi_cam.__file__).parent
+            # When installed via pip, the file might be in various parent directories
+            search_paths = [
+                package_path.parent,  # site-packages or dist-packages
+                package_path.parent.parent,  # lib/python3.x
+                package_path.parent.parent.parent,  # venv root or /usr
+            ]
+            # Also check if we can find it relative to the current working directory
+            cwd = Path.cwd()
+            if (cwd / "aero-pi-cam.service").exists():
+                service_file_source = cwd / "aero-pi-cam.service"
+            else:
+                for parent in search_paths:
+                    candidate = parent / "aero-pi-cam.service"
+                    if candidate.exists():
+                        service_file_source = candidate
+                        break
+        except ImportError:
+            pass
+    
+    if service_file_source is None:
+        # When installing from git via pip, the file is in the source distribution
+        # but not accessible after installation. However, pip does install it to
+        # /etc/systemd/system/ during installation. If this is a fresh install
+        # and the file doesn't exist yet, we need to download it from the repo.
+        # For now, let's provide a helpful error message.
         print("Error: Could not find aero-pi-cam.service file.")
-        print("Please ensure the package is properly installed.")
+        print("\nThis may happen when installing from git. The file is included in")
+        print("the source distribution but may not be accessible after installation.")
+        print("\nTroubleshooting:")
+        print("1. Check if the file is already installed:")
+        print(f"   sudo ls -la {service_file_dest}")
+        print("2. If not, the file should be installed during pip install.")
+        print("   Try reinstalling: pip install --force-reinstall git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop")
+        print("3. Then run setup again: sudo aero-pi-cam-setup")
         return False
 
     try:
@@ -306,6 +345,9 @@ def get_config_example_content() -> str | None:
         Config file content as string, or None if not found
     """
     # Try to find example config from various locations
+    # Note: When installed via pip from git, the file is installed to
+    # /usr/share/aero-pi-cam/ (system) or <venv>/usr/share/aero-pi-cam/ (venv)
+    # via data_files, but we also need to check repository root when running from source.
     possible_locations = [
         # If running from source, check repository root
         Path(__file__).parent.parent / "config.example.yaml",
@@ -317,6 +359,55 @@ def get_config_example_content() -> str | None:
     for location in possible_locations:
         if location.exists():
             return location.read_text()
+    
+    # Try to find it using the package location (when installed via pip from git)
+    try:
+        import aero_pi_cam
+        package_path = Path(aero_pi_cam.__file__).parent
+        # When installed via pip, the file might be in various parent directories
+        search_paths = [
+            package_path.parent,  # site-packages or dist-packages
+            package_path.parent.parent,  # lib/python3.x
+            package_path.parent.parent.parent,  # venv root or /usr
+        ]
+        
+        # Check installed location (data_files installs to usr/share/aero-pi-cam/)
+        # For system installs: /usr/share/aero-pi-cam/
+        # For venv installs: <venv>/usr/share/aero-pi-cam/
+        if "site-packages" in str(package_path) or "dist-packages" in str(package_path):
+            # Find venv root or system root
+            for i, part in enumerate(package_path.parts):
+                if part in ("site-packages", "dist-packages"):
+                    if i >= 2:
+                        # Go up to find potential root (venv or /usr)
+                        potential_root = Path(*package_path.parts[: i - 2])
+                        # Check venv location
+                        venv_location = potential_root / "usr" / "share" / "aero-pi-cam" / "config.example.yaml"
+                        if venv_location.exists():
+                            return venv_location.read_text()
+                    break
+        
+        # Check system-wide location
+        system_location = Path("/usr/share/aero-pi-cam/config.example.yaml")
+        if system_location.exists():
+            return system_location.read_text()
+        
+        # Also check if we can find it relative to the current working directory
+        cwd = Path.cwd()
+        if (cwd / "config.example.yaml").exists():
+            return (cwd / "config.example.yaml").read_text()
+        else:
+            for parent in search_paths:
+                candidate = parent / "config.example.yaml"
+                if candidate.exists():
+                    return candidate.read_text()
+    except ImportError:
+        pass
+    
+    # Final check: system-wide installation location
+    system_location = Path("/usr/share/aero-pi-cam/config.example.yaml")
+    if system_location.exists():
+        return system_location.read_text()
     
     return None
 
