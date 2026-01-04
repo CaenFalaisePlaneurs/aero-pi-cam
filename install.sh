@@ -13,6 +13,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 INSTALL_DIR="/opt/webcam-cfp"
+CONFIG_DIR="/etc/aero-pi-cam"
+CONFIG_FILE="$CONFIG_DIR/config.yaml"
 SERVICE_USER="${SUDO_USER:-$USER}"
 REPO_URL="${REPO_URL:-https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git}"
 BRANCH="${BRANCH:-main}"
@@ -104,17 +106,28 @@ echo "✓ Python dependencies installed"
 
 # Setup configuration
 echo -e "${GREEN}[6/7]${NC} Setting up configuration..."
-if [ ! -f "$INSTALL_DIR/config.yaml" ]; then
-    if [ -f "$INSTALL_DIR/config.example.yaml" ]; then
-        cp "$INSTALL_DIR/config.example.yaml" "$INSTALL_DIR/config.yaml"
-        chown "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR/config.yaml"
+# Create config directory (following Debian FHS)
+mkdir -p "$CONFIG_DIR"
+if [ ! -f "$CONFIG_FILE" ]; then
+    # Check for old config location (migration from previous versions)
+    if [ -f "$INSTALL_DIR/config.yaml" ]; then
+        echo "Migrating configuration from old location to $CONFIG_FILE..."
+        cp "$INSTALL_DIR/config.yaml" "$CONFIG_FILE"
+        chown "$SERVICE_USER:$SERVICE_USER" "$CONFIG_FILE"
+        chmod 600 "$CONFIG_FILE"
+        echo "✓ Configuration migrated to $CONFIG_FILE"
+        echo -e "${YELLOW}Note: Old config at $INSTALL_DIR/config.yaml can be removed.${NC}"
+    elif [ -f "$INSTALL_DIR/config.example.yaml" ]; then
+        cp "$INSTALL_DIR/config.example.yaml" "$CONFIG_FILE"
+        chown "$SERVICE_USER:$SERVICE_USER" "$CONFIG_FILE"
+        chmod 600 "$CONFIG_FILE"
         echo -e "${YELLOW}⚠ Configuration file created from example.${NC}"
-        echo -e "${YELLOW}⚠ Please edit $INSTALL_DIR/config.yaml before starting the service.${NC}"
+        echo -e "${YELLOW}⚠ Please edit $CONFIG_FILE before starting the service.${NC}"
     else
         echo -e "${YELLOW}Warning: config.example.yaml not found${NC}"
     fi
 else
-    echo "Configuration file already exists, skipping..."
+    echo "Configuration file already exists at $CONFIG_FILE, skipping..."
 fi
 
 # Install systemd service
@@ -126,11 +139,11 @@ if [ -f "$INSTALL_DIR/aero-pi-cam.service" ]; then
     echo "✓ Systemd service installed and enabled"
     
     # Check if config exists and is configured
-    if [ -f "$INSTALL_DIR/config.yaml" ]; then
+    if [ -f "$CONFIG_FILE" ]; then
         # Check if config has been edited (not just example values)
-        if grep -q "secret-api-key" "$INSTALL_DIR/config.yaml" || grep -q "api.example.com" "$INSTALL_DIR/config.yaml"; then
+        if grep -q "secret-api-key" "$CONFIG_FILE" || grep -q "api.example.com" "$CONFIG_FILE"; then
             echo -e "${YELLOW}⚠ Configuration file still contains example values.${NC}"
-            echo -e "${YELLOW}⚠ Please edit $INSTALL_DIR/config.yaml before starting the service.${NC}"
+            echo -e "${YELLOW}⚠ Please edit $CONFIG_FILE before starting the service.${NC}"
             echo ""
             read -p "Do you want to start the service anyway? (y/N) " -n 1 -r
             echo
@@ -170,7 +183,7 @@ echo -e "${GREEN}║  Installation Complete!               ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
 echo ""
 echo "Next steps:"
-echo "1. Edit configuration: sudo nano $INSTALL_DIR/config.yaml"
+echo "1. Edit configuration: sudo nano $CONFIG_FILE"
 echo "2. Start service: sudo systemctl start aero-pi-cam"
 echo "3. Check status: sudo systemctl status aero-pi-cam"
 echo "4. View logs: sudo journalctl -u aero-pi-cam -f"

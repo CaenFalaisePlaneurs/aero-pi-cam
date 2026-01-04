@@ -1,5 +1,6 @@
 """Main entry point for webcam capture service."""
 
+import argparse
 import asyncio
 import os
 import shutil
@@ -31,7 +32,7 @@ except ImportError:
     from src.sun import get_sun_times, is_day
     from src.upload import upload_image
 
-CONFIG_PATH = os.getenv("CONFIG_PATH", "config.yaml")
+# Default config path (can be overridden by command-line argument or CONFIG_PATH env var)
 
 scheduler: AsyncIOScheduler | None = None
 is_running = False
@@ -454,8 +455,12 @@ def shutdown(signum: int, frame: object) -> None:  # noqa: ARG001
         _shutdown_event.set()
 
 
-async def run_service() -> None:
-    """Run the service in an async context."""
+async def run_service(config_path: str | None = None) -> None:
+    """Run the service in an async context.
+    
+    Args:
+        config_path: Path to configuration file. If None, uses CONFIG_PATH env var or default.
+    """
     global config, _shutdown_event, scheduler
     _shutdown_event = asyncio.Event()
 
@@ -464,10 +469,14 @@ async def run_service() -> None:
     # Check for required external dependencies
     check_external_dependencies()
 
-    print(f"Loading config from: {CONFIG_PATH}")
+    # Determine config path: command-line arg > env var > default
+    if config_path is None:
+        config_path = os.getenv("CONFIG_PATH", "config.yaml")
+
+    print(f"Loading config from: {config_path}")
 
     try:
-        config = load_config(CONFIG_PATH)
+        config = load_config(config_path)
     except Exception as e:
         print(f"Failed to load config: {e}")
         sys.exit(1)
@@ -545,12 +554,25 @@ async def run_service() -> None:
 
 def main() -> None:
     """Main entry point."""
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description="Webcam Capture Service for aeronautical webcam capture and upload"
+    )
+    parser.add_argument(
+        "--config",
+        "-c",
+        type=str,
+        default=None,
+        help="Path to configuration file (overrides CONFIG_PATH environment variable)",
+    )
+    args = parser.parse_args()
+
     # Register shutdown handlers
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
 
     try:
-        asyncio.run(run_service())
+        asyncio.run(run_service(config_path=args.config))
     except KeyboardInterrupt:
         # Signal handler will handle this
         pass

@@ -11,6 +11,7 @@ User=pi
 
 # Use virtual environment (recommended)
 Environment="PATH=/opt/webcam-cfp/venv/bin:/usr/bin"
+Environment="CONFIG_PATH=/etc/aero-pi-cam/config.yaml"
 ExecStart=/opt/webcam-cfp/venv/bin/python src/main.py
 
 # Alternative: Use system Python (uncomment to use)

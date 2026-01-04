@@ -12,8 +12,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 INSTALL_DIR="/opt/webcam-cfp"
+CONFIG_DIR="/etc/aero-pi-cam"
 SERVICE_NAME="aero-pi-cam"
-CONFIG_BACKUP_DIR="$HOME/aero-pi-cam-config-backup"
 
 echo -e "${RED}╔════════════════════════════════════════╗${NC}"
 echo -e "${RED}║  Webcam Capture Service Uninstaller   ║${NC}"
@@ -36,7 +36,7 @@ echo "  - Installation directory ($INSTALL_DIR)"
 echo "  - All application files"
 echo ""
 echo -e "${GREEN}The following will be preserved:${NC}"
-echo "  - Configuration file (config.yaml) - will be backed up to $CONFIG_BACKUP_DIR"
+echo "  - Configuration directory ($CONFIG_DIR) - following Debian best practices"
 echo ""
 read -p "Are you sure you want to continue? (yes/NO) " -r
 echo
@@ -62,7 +62,7 @@ else
 fi
 
 # Step 2: Remove systemd service file
-echo -e "${GREEN}[2/4]${NC} Removing systemd service file..."
+echo -e "${GREEN}[2/3]${NC} Removing systemd service file..."
 if [ -f "/etc/systemd/system/$SERVICE_NAME.service" ]; then
     rm -f "/etc/systemd/system/$SERVICE_NAME.service"
     systemctl daemon-reload
@@ -72,35 +72,8 @@ else
     echo "Service file not found (may have been already removed)"
 fi
 
-# Step 3: Backup configuration files
-echo -e "${GREEN}[3/4]${NC} Backing up configuration files..."
-if [ -d "$INSTALL_DIR" ]; then
-    # Create backup directory
-    mkdir -p "$CONFIG_BACKUP_DIR"
-    
-    # Backup config.yaml if it exists
-    if [ -f "$INSTALL_DIR/config.yaml" ]; then
-        cp "$INSTALL_DIR/config.yaml" "$CONFIG_BACKUP_DIR/config.yaml"
-        echo "✓ Configuration backed up to $CONFIG_BACKUP_DIR/config.yaml"
-    else
-        echo "No config.yaml found to backup"
-    fi
-    
-    # Also backup config.example.yaml for reference
-    if [ -f "$INSTALL_DIR/config.example.yaml" ]; then
-        cp "$INSTALL_DIR/config.example.yaml" "$CONFIG_BACKUP_DIR/config.example.yaml"
-    fi
-    
-    # Set ownership of backup directory
-    if [ -n "$SUDO_USER" ]; then
-        chown -R "$SUDO_USER:$SUDO_USER" "$CONFIG_BACKUP_DIR"
-    fi
-else
-    echo "Installation directory not found, skipping backup"
-fi
-
-# Step 4: Remove installation directory
-echo -e "${GREEN}[4/4]${NC} Removing installation directory..."
+# Step 3: Remove installation directory
+echo -e "${GREEN}[3/3]${NC} Removing installation directory..."
 if [ -d "$INSTALL_DIR" ]; then
     rm -rf "$INSTALL_DIR"
     echo "✓ Installation directory removed"
@@ -115,14 +88,14 @@ echo -e "${GREEN}╚════════════════════
 echo ""
 echo "The aero-pi-cam service has been completely removed."
 echo ""
-if [ -d "$CONFIG_BACKUP_DIR" ] && [ -f "$CONFIG_BACKUP_DIR/config.yaml" ]; then
-    echo -e "${GREEN}Your configuration has been backed up to:${NC}"
-    echo "  $CONFIG_BACKUP_DIR/config.yaml"
+if [ -d "$CONFIG_DIR" ]; then
+    echo -e "${GREEN}Your configuration has been preserved at:${NC}"
+    echo "  $CONFIG_DIR/config.yaml"
     echo ""
-    echo "To restore it after reinstalling, copy it back:"
-    echo "  cp $CONFIG_BACKUP_DIR/config.yaml /opt/webcam-cfp/config.yaml"
+    echo "Following Debian best practices, configuration files are not removed."
+    echo "If you reinstall, your existing configuration will be used."
 fi
 echo ""
 echo "To reinstall, run:"
-    echo "  curl -fsSL https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/install.sh | sudo bash"
+echo "  curl -fsSL https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/install.sh | sudo bash"
 

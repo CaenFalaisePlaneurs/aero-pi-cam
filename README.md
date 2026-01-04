@@ -51,7 +51,7 @@ The installer will:
 
 **After installation**, edit the configuration:
 ```bash
-sudo nano /opt/webcam-cfp/config.yaml
+sudo nano /etc/aero-pi-cam/config.yaml
 ```
 
 Then start the service:
@@ -77,9 +77,8 @@ curl -fsSL https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/mai
 The uninstaller will:
 - ✅ Stop and disable the systemd service
 - ✅ Remove the service file
-- ✅ Backup your `config.yaml` to `~/aero-pi-cam-config-backup/`
 - ✅ Remove the installation directory
-- ✅ Preserve your configuration for future use
+- ✅ Preserve your configuration at `/etc/aero-pi-cam/config.yaml` (following Debian best practices)
 
 ### Manual Installation
 
@@ -142,8 +141,11 @@ pip install -r requirements.txt
 #### 4. Configure
 
 ```bash
-cp config.example.yaml config.yaml
-nano config.yaml
+sudo mkdir -p /etc/aero-pi-cam
+sudo cp config.example.yaml /etc/aero-pi-cam/config.yaml
+sudo nano /etc/aero-pi-cam/config.yaml
+sudo chown pi:pi /etc/aero-pi-cam/config.yaml
+sudo chmod 600 /etc/aero-pi-cam/config.yaml
 ```
 
 Edit the configuration:
@@ -323,9 +325,9 @@ Captured images will be saved to `/opt/webcam-cfp/.debug/capture_YYYYMMDD_HHMMSS
 
 ### Configuration errors
 
-- Ensure `config.yaml` exists and is valid YAML
-- Check file permissions: `sudo chown pi:pi /opt/webcam-cfp/config.yaml`
-- Validate with: `python3 -c "from src.config import load_config; load_config('/opt/webcam-cfp/config.yaml')"`
+- Ensure `config.yaml` exists and is valid YAML at `/etc/aero-pi-cam/config.yaml`
+- Check file permissions: `sudo chown pi:pi /etc/aero-pi-cam/config.yaml`
+- Validate with: `python3 -c "from src.config import load_config; load_config('/etc/aero-pi-cam/config.yaml')"`
 
 ### Python/dependency issues
 
@@ -347,15 +349,38 @@ Captured images will be saved to `/opt/webcam-cfp/.debug/capture_YYYYMMDD_HHMMSS
 - Check camera network connectivity
 - Verify RTSP credentials
 
-### Restoring Configuration After Reinstall
+### Configuration Location
 
-If you backed up your configuration:
+The configuration file is located at `/etc/aero-pi-cam/config.yaml` following Debian Filesystem Hierarchy Standard (FHS) best practices. This means:
 
+- ✅ Configuration persists across uninstalls (standard Debian behavior)
+- ✅ Configuration is in the standard system location (`/etc/`)
+
+To edit your configuration:
 ```bash
-cp ~/aero-pi-cam-config-backup/config.yaml /opt/webcam-cfp/config.yaml
-sudo chown pi:pi /opt/webcam-cfp/config.yaml
-sudo systemctl restart aero-pi-cam
+sudo nano /etc/aero-pi-cam/config.yaml
 ```
+
+### Overriding Configuration Path
+
+You can override the configuration file path using:
+
+1. **Command-line argument** (highest priority):
+   ```bash
+   python -m src.main --config /path/to/custom-config.yaml
+   # or short form:
+   python -m src.main -c /path/to/custom-config.yaml
+   ```
+
+2. **Environment variable**:
+   ```bash
+   export CONFIG_PATH=/path/to/custom-config.yaml
+   python -m src.main
+   ```
+
+3. **Default**: `/etc/aero-pi-cam/config.yaml` (when running as systemd service) or `config.yaml` (when running manually from project directory)
+
+The precedence order is: command-line argument > environment variable > default.
 
 ## License
 
