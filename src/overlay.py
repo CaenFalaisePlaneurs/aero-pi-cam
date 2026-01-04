@@ -17,8 +17,10 @@ SUNSET_ICON_PATH = "images/icons/sunset.svg"
 def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Image.Image | None:
     """Load icon from local file path.
 
+    Supports both PNG (with transparency) and SVG formats.
+
     Args:
-        icon_path: Path to SVG file
+        icon_path: Path to PNG or SVG file
         size: Icon size in pixels
         is_codebase_icon: If True, path is relative to src/ directory (hardcoded icons).
                          If False, path is relative to project root (user-configured logos).
@@ -36,15 +38,30 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
                 project_root = current_file.parent.parent
                 icon_file = project_root / icon_path
 
-        with open(icon_file, encoding="utf-8") as f:
-            svg_content = f.read()
+        # Check file extension to determine format
+        file_ext = icon_file.suffix.lower()
 
-        # Convert SVG to PNG using cairosvg
-        png_bytes = cairosvg.svg2png(
-            bytestring=svg_content.encode("utf-8"), output_width=size, output_height=size
-        )
-        icon_img = Image.open(BytesIO(png_bytes))
-        return icon_img.convert("RGBA")
+        if file_ext == ".png":
+            # Load PNG directly with PIL, preserving transparency
+            icon_img = Image.open(icon_file)
+            # Ensure RGBA mode to preserve transparency
+            if icon_img.mode != "RGBA":
+                icon_img = icon_img.convert("RGBA")
+            # Resize while preserving aspect ratio (logo_size is max dimension)
+            icon_img.thumbnail((size, size), Image.Resampling.LANCZOS)
+            return icon_img
+        elif file_ext == ".svg":
+            # Convert SVG to PNG using cairosvg
+            with open(icon_file, encoding="utf-8") as f:
+                svg_content = f.read()
+            png_bytes = cairosvg.svg2png(
+                bytestring=svg_content.encode("utf-8"), output_width=size, output_height=size
+            )
+            icon_img = Image.open(BytesIO(png_bytes))
+            return icon_img.convert("RGBA")
+        else:
+            # Unknown format, return None
+            return None
     except Exception:
         return None
 
@@ -195,11 +212,22 @@ def draw_overlay_on_image(
     provider_text = config.overlay.provider_name
     temp_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     provider_bbox = temp_draw.textbbox((0, 0), provider_text, font=font)
+    
+    # Camera name + UTC date/time on top-right, right aligned
+    capture_str = capture_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+    camera_text = f"{config.overlay.camera_name} - {capture_str}"
+    camera_bbox = temp_draw.textbbox((0, 0), camera_text, font=font)
+    
+    # Calculate common baseline Y position for vertical alignment
+    # Use the maximum (most negative) top value to ensure both texts align
+    common_top = min(provider_bbox[1], camera_bbox[1])
+    common_y = padding - common_top
+    
+    # Draw provider name (left aligned)
     provider_x = padding
-    provider_y = padding - provider_bbox[1]
     draw_text_with_shadow(
         draw,
-        (provider_x, provider_y),
+        (provider_x, common_y),
         provider_text,
         text_color,
         font,
@@ -208,18 +236,14 @@ def draw_overlay_on_image(
         config.overlay.shadow_offset_y,
         shadow_color,
     )
-
-    # Camera name + UTC date/time on top-right, right aligned
-    capture_str = capture_time.strftime("%Y-%m-%d %H:%M:%S UTC")
-    camera_text = f"{config.overlay.camera_name} - {capture_str}"
-    camera_bbox = temp_draw.textbbox((0, 0), camera_text, font=font)
+    
+    # Draw camera name + date/time (right aligned)
     camera_text_width = camera_bbox[2] - camera_bbox[0]
     camera_text_height = camera_bbox[3] - camera_bbox[1]
     camera_x = img_width - padding - camera_text_width
-    camera_y = padding - camera_bbox[1]
     draw_text_with_shadow(
         draw,
-        (camera_x, camera_y),
+        (camera_x, common_y),
         camera_text,
         text_color,
         font,
@@ -230,7 +254,10 @@ def draw_overlay_on_image(
     )
 
     # Sunrise and sunset times with icons (below camera name, right aligned)
-    y_pos = padding + camera_text_height + line_spacing
+    # Use maximum height of both texts for consistent spacing
+    provider_text_height = provider_bbox[3] - provider_bbox[1]
+    max_text_height = max(provider_text_height, camera_text_height)
+    y_pos = padding + max_text_height + line_spacing
     sunrise_str = sunrise_time.strftime("%H:%M UTC")
     sunset_str = sunset_time.strftime("%H:%M UTC")
 
@@ -388,8 +415,10 @@ def draw_overlay_on_image(
     # Bottom-right: Logo
     if logo:
         try:
-            logo_x = img_width - padding - logo_size
-            logo_y = img_height - padding - logo_size
+            # Use actual logo dimensions (may not be square)
+            logo_width, logo_height = logo.size
+            logo_x = img_width - padding - logo_width
+            logo_y = img_height - padding - logo_height
             paste_image_with_shadow(
                 img,
                 logo,

@@ -10,7 +10,7 @@ camera:
   # rtsp_password: "your-password-here"  # No URL encoding needed - password used as-is (special characters like $ or & are OK)
 
 location:
-  # Camera at LFAS (Aerodrome de Falaise)
+  # Camera location ICAO code
   name: "LFAS"
   latitude: 48.9267952
   longitude: -0.1477169
@@ -34,10 +34,10 @@ api:
 
 # Overlay configuration
 overlay:
-  provider_name: "Caen Falaise Planeurs"
-  provider_logo: "images/logo-cfp.svg"  # User-configured logo in images/ directory
+  provider_name: "My Airfield - cam"
+  provider_logo: "images/logo.svg"  # User-configured logo in images/ directory
   logo_size: 72  # Logo size in pixels
-  camera_name: "hangar 2"
+  camera_name: "hangar 1"
   font_color: "white"
   font_size: 16
   sun_icon_size: 24  # Sunrise/sunset icon size in pixels
@@ -51,8 +51,8 @@ overlay:
 
 # METAR/TAF overlay (Aviation Weather API - no API key required)
 metar:
-  enabled: true
-  icao_code: "LFRK"                    # Nearest reporting airport (Caen/Carpiquet)
+  enabled: false
+  icao_code: "XXXX"                    # Nearest reporting airport ICAO code
   api_url: "https://aviationweather.gov/api/data/metar"  # METAR API base URL
   raw_metar_enabled: true              # Show raw METAR text block
 
