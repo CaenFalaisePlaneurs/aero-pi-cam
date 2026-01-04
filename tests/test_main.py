@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from src.config import (
+from aero_pi_cam.config import (
     ApiConfig,
     CameraConfig,
     Config,
@@ -13,7 +13,7 @@ from src.config import (
     OverlayConfig,
     ScheduleConfig,
 )
-from src.main import get_day_night_mode
+from aero_pi_cam.main import get_day_night_mode
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def mock_config() -> Config:
 
 def test_get_day_night_mode_forced_day(monkeypatch, mock_config) -> None:
     """Test get_day_night_mode with DEBUG_DAY_NIGHT_MODE=day."""
-    monkeypatch.setattr("src.main.config", mock_config)
+    monkeypatch.setattr("aero_pi_cam.main.config", mock_config)
     monkeypatch.setenv("DEBUG_DAY_NIGHT_MODE", "day")
 
     capture_time = datetime(2026, 1, 2, 3, 0, 0, tzinfo=UTC)  # Night time
@@ -46,7 +46,7 @@ def test_get_day_night_mode_forced_day(monkeypatch, mock_config) -> None:
 
 def test_get_day_night_mode_forced_night(monkeypatch, mock_config) -> None:
     """Test get_day_night_mode with DEBUG_DAY_NIGHT_MODE=night."""
-    monkeypatch.setattr("src.main.config", mock_config)
+    monkeypatch.setattr("aero_pi_cam.main.config", mock_config)
     monkeypatch.setenv("DEBUG_DAY_NIGHT_MODE", "night")
 
     capture_time = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)  # Day time
@@ -57,7 +57,7 @@ def test_get_day_night_mode_forced_night(monkeypatch, mock_config) -> None:
 
 def test_get_day_night_mode_actual_day(monkeypatch, mock_config) -> None:
     """Test get_day_night_mode uses actual sun calculation when no override."""
-    monkeypatch.setattr("src.main.config", mock_config)
+    monkeypatch.setattr("aero_pi_cam.main.config", mock_config)
     monkeypatch.delenv("DEBUG_DAY_NIGHT_MODE", raising=False)
 
     capture_time = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)  # Day time
@@ -68,7 +68,7 @@ def test_get_day_night_mode_actual_day(monkeypatch, mock_config) -> None:
 
 def test_get_day_night_mode_actual_night(monkeypatch, mock_config) -> None:
     """Test get_day_night_mode uses actual sun calculation for night."""
-    monkeypatch.setattr("src.main.config", mock_config)
+    monkeypatch.setattr("aero_pi_cam.main.config", mock_config)
     monkeypatch.delenv("DEBUG_DAY_NIGHT_MODE", raising=False)
 
     capture_time = datetime(2026, 1, 2, 3, 0, 0, tzinfo=UTC)  # Night time
@@ -79,7 +79,7 @@ def test_get_day_night_mode_actual_night(monkeypatch, mock_config) -> None:
 
 def test_get_day_night_mode_case_insensitive(monkeypatch, mock_config) -> None:
     """Test get_day_night_mode is case insensitive."""
-    monkeypatch.setattr("src.main.config", mock_config)
+    monkeypatch.setattr("aero_pi_cam.main.config", mock_config)
     monkeypatch.setenv("DEBUG_DAY_NIGHT_MODE", "DAY")
 
     capture_time = datetime(2026, 1, 2, 3, 0, 0, tzinfo=UTC)
@@ -90,7 +90,7 @@ def test_get_day_night_mode_case_insensitive(monkeypatch, mock_config) -> None:
 
 def test_get_day_night_mode_no_config_defaults_to_day(monkeypatch) -> None:
     """Test get_day_night_mode defaults to day when no config."""
-    monkeypatch.setattr("src.main.config", None)
+    monkeypatch.setattr("aero_pi_cam.main.config", None)
     monkeypatch.delenv("DEBUG_DAY_NIGHT_MODE", raising=False)
 
     capture_time = datetime(2026, 1, 2, 3, 0, 0, tzinfo=UTC)
@@ -101,7 +101,7 @@ def test_get_day_night_mode_no_config_defaults_to_day(monkeypatch) -> None:
 
 def test_get_day_night_mode_invalid_override(monkeypatch, mock_config) -> None:
     """Test get_day_night_mode ignores invalid override values."""
-    monkeypatch.setattr("src.main.config", mock_config)
+    monkeypatch.setattr("aero_pi_cam.main.config", mock_config)
     monkeypatch.setenv("DEBUG_DAY_NIGHT_MODE", "invalid")
 
     capture_time = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)  # Day time
@@ -112,7 +112,7 @@ def test_get_day_night_mode_invalid_override(monkeypatch, mock_config) -> None:
 
 def test_check_external_dependencies_all_present(monkeypatch) -> None:
     """Test check_external_dependencies when all dependencies are present."""
-    from src.main import check_external_dependencies
+    from aero_pi_cam.main import check_external_dependencies
 
     monkeypatch.setattr("shutil.which", lambda x: "/usr/bin/ffmpeg" if x == "ffmpeg" else None)
 
@@ -128,7 +128,7 @@ def test_check_external_dependencies_all_present(monkeypatch) -> None:
 
 def test_check_external_dependencies_missing_ffmpeg(monkeypatch) -> None:
     """Test check_external_dependencies when ffmpeg is missing."""
-    from src.main import check_external_dependencies
+    from aero_pi_cam.main import check_external_dependencies
 
     monkeypatch.setattr("shutil.which", lambda x: None)
 

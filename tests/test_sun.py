@@ -5,8 +5,8 @@ All tests use UTC timezone for aeronautical compliance.
 
 from datetime import UTC, datetime
 
-from src.config import LocationConfig
-from src.sun import get_next_capture_interval, get_sun_times, is_day
+from aero_pi_cam.config import LocationConfig
+from aero_pi_cam.sun import get_next_capture_interval, get_sun_times, is_day
 
 
 def test_get_sun_times() -> None:
@@ -155,7 +155,9 @@ def test_get_sun_times_sunrise_non_utc() -> None:
     mock_sunrise = datetime(2026, 6, 21, 7, 0, 0, tzinfo=est)
     mock_sunset = datetime(2026, 6, 21, 17, 0, 0, tzinfo=est)
 
-    with patch("src.sun.get_times", return_value={"sunrise": mock_sunrise, "sunset": mock_sunset}):
+    with patch(
+        "aero_pi_cam.sun.get_times", return_value={"sunrise": mock_sunrise, "sunset": mock_sunset}
+    ):
         times = get_sun_times(date, location)
 
     assert times["sunrise"].tzinfo == UTC
@@ -180,7 +182,9 @@ def test_get_sun_times_sunset_non_utc() -> None:
     mock_sunrise = datetime(2026, 6, 21, 7, 0, 0, tzinfo=UTC)
     mock_sunset = datetime(2026, 6, 21, 17, 0, 0, tzinfo=est)
 
-    with patch("src.sun.get_times", return_value={"sunrise": mock_sunrise, "sunset": mock_sunset}):
+    with patch(
+        "aero_pi_cam.sun.get_times", return_value={"sunrise": mock_sunrise, "sunset": mock_sunset}
+    ):
         times = get_sun_times(date, location)
 
     assert times["sunset"].tzinfo == UTC

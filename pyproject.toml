@@ -5,7 +5,8 @@ description = "Raspberry Pi webcam capture service for LFAS aerodrome"
 authors = [
     {name = "Nicolas Massart", email = "contact@caenfalaiseplaneurs.fr"}
 ]
-license = {text = "GPL-3.0"}
+license = "GPL-3.0"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
@@ -20,6 +21,14 @@ dependencies = [
 
 [project.scripts]
 webcam = "aero_pi_cam.main:main"
+aero-pi-cam-setup = "aero_pi_cam.setup:main"
+aero-pi-cam-uninstall = "aero_pi_cam.uninstall:main"
+
+[tool.setuptools]
+packages = ["aero_pi_cam"]
+
+[tool.setuptools.package-data]
+aero_pi_cam = ["images/**/*", "fonts/*.ttf"]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
@@ -53,7 +62,7 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
-addopts = "-v --cov=src --cov-report=term-missing"
+addopts = "-v --cov=aero_pi_cam --cov-report=term-missing"
 filterwarnings = [
     "ignore::DeprecationWarning:suncalc.*",
     "ignore::RuntimeWarning:suncalc.*",

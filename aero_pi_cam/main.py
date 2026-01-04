@@ -20,17 +20,17 @@ try:
     from .sun import get_sun_times, is_day
     from .upload import upload_image
 except ImportError:
-    # Allow running as script: python src/main.py
+    # Allow running as script: python aero_pi_cam/main.py
     import sys
     from pathlib import Path
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from src.capture import capture_frame
-    from src.config import Config, load_config
-    from src.metar import fetch_metar, get_raw_metar, get_raw_taf
-    from src.overlay import add_comprehensive_overlay, generate_overlay_only
-    from src.sun import get_sun_times, is_day
-    from src.upload import upload_image
+    from aero_pi_cam.capture import capture_frame
+    from aero_pi_cam.config import Config, load_config
+    from aero_pi_cam.metar import fetch_metar, get_raw_metar, get_raw_taf
+    from aero_pi_cam.overlay import add_comprehensive_overlay, generate_overlay_only
+    from aero_pi_cam.sun import get_sun_times, is_day
+    from aero_pi_cam.upload import upload_image
 
 # Default config path (can be overridden by command-line argument or CONFIG_PATH env var)
 
@@ -457,7 +457,7 @@ def shutdown(signum: int, frame: object) -> None:  # noqa: ARG001
 
 async def run_service(config_path: str | None = None) -> None:
     """Run the service in an async context.
-    
+
     Args:
         config_path: Path to configuration file. If None, uses CONFIG_PATH env var or default.
     """

@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.config import ApiConfig
-from src.upload import upload_image
+from aero_pi_cam.config import ApiConfig
+from aero_pi_cam.upload import upload_image
 
 
 @pytest.mark.asyncio

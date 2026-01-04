@@ -4,18 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/webcam-cfp
 Restart=always
 RestartSec=10
 User=pi
-
-# Use virtual environment (recommended)
-Environment="PATH=/opt/webcam-cfp/venv/bin:/usr/bin"
 Environment="CONFIG_PATH=/etc/aero-pi-cam/config.yaml"
-ExecStart=/opt/webcam-cfp/venv/bin/python src/main.py
-
-# Alternative: Use system Python (uncomment to use)
-# ExecStart=/usr/bin/python3 /opt/webcam-cfp/src/main.py
+ExecStart=/usr/bin/webcam
 
 # Logging
 StandardOutput=journal

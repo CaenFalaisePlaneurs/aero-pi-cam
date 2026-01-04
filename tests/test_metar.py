@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from src.metar import fetch_metar, format_metar_overlay
+from aero_pi_cam.metar import fetch_metar, format_metar_overlay
 
 
 @pytest.mark.asyncio
@@ -210,7 +210,7 @@ def test_format_metar_overlay() -> None:
 
 def test_get_raw_metar_empty() -> None:
     """Test get_raw_metar with empty value."""
-    from src.metar import get_raw_metar
+    from aero_pi_cam.metar import get_raw_metar
 
     result = get_raw_metar({"rawOb": ""})
     assert result == ""
@@ -218,7 +218,7 @@ def test_get_raw_metar_empty() -> None:
 
 def test_get_raw_metar_none() -> None:
     """Test get_raw_metar with None value."""
-    from src.metar import get_raw_metar
+    from aero_pi_cam.metar import get_raw_metar
 
     result = get_raw_metar({"rawOb": None})
     assert result == ""
@@ -226,7 +226,7 @@ def test_get_raw_metar_none() -> None:
 
 def test_get_raw_taf_empty() -> None:
     """Test get_raw_taf with empty value."""
-    from src.metar import get_raw_taf
+    from aero_pi_cam.metar import get_raw_taf
 
     result = get_raw_taf({"rawTaf": ""})
     assert result == ""
@@ -234,7 +234,7 @@ def test_get_raw_taf_empty() -> None:
 
 def test_get_raw_taf_none() -> None:
     """Test get_raw_taf with None value."""
-    from src.metar import get_raw_taf
+    from aero_pi_cam.metar import get_raw_taf
 
     result = get_raw_taf({"rawTaf": None})
     assert result == ""
@@ -242,7 +242,7 @@ def test_get_raw_taf_none() -> None:
 
 def test_format_metar_overlay_no_time_match() -> None:
     """Test format_metar_overlay when rawOb has no time pattern."""
-    from src.metar import format_metar_overlay
+    from aero_pi_cam.metar import format_metar_overlay
 
     metar_data = {
         "icaoId": "LFRK",

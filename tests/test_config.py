@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.config import validate_config
+from aero_pi_cam.config import validate_config
 
 
 def test_validate_correct_config() -> None:
@@ -396,7 +396,7 @@ def test_load_config_with_path() -> None:
 
     import yaml
 
-    from src.config import load_config
+    from aero_pi_cam.config import load_config
 
     config_data = {
         "camera": {"rtsp_url": "rtsp://test:pass@192.168.0.1:554/stream1"},
@@ -436,7 +436,7 @@ def test_load_config_with_path() -> None:
 
 def test_load_config_file_not_found() -> None:
     """Test load_config raises FileNotFoundError for missing file."""
-    from src.config import load_config
+    from aero_pi_cam.config import load_config
 
     with pytest.raises(FileNotFoundError):
         load_config("nonexistent_config.yaml")
@@ -446,7 +446,7 @@ def test_load_config_default_path() -> None:
     """Test load_config uses CONFIG_PATH env var or default."""
     import os
 
-    from src.config import load_config
+    from aero_pi_cam.config import load_config
 
     original_env = os.environ.get("CONFIG_PATH")
     try:

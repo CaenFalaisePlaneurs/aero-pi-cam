@@ -30,13 +30,17 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
         if not icon_file.is_absolute():
             current_file = Path(__file__)
             if is_codebase_icon:
-                # Codebase icons are in src/images/icons/
-                src_dir = current_file.parent
-                icon_file = src_dir / icon_path
+                # Codebase icons are in aero_pi_cam/images/icons/ (package directory)
+                package_dir = current_file.parent
+                icon_file = package_dir / icon_path
             else:
-                # User-configured logos are in images/ at project root
-                project_root = current_file.parent.parent
-                icon_file = project_root / icon_path
+                # User-configured logos: try package directory first, then project root
+                package_dir = current_file.parent
+                icon_file = package_dir / icon_path
+                if not icon_file.exists():
+                    # Fallback to project root (for development)
+                    project_root = current_file.parent.parent
+                    icon_file = project_root / icon_path
 
         # Check file extension to determine format
         file_ext = icon_file.suffix.lower()
@@ -69,7 +73,14 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
 def load_poppins_font(size: int) -> ImageFont.ImageFont:
     """Load Poppins Medium font with fallback to default."""
     try:
+        # Try to find font in package directory (for pip-installed package)
         current_file = Path(__file__)
+        package_dir = current_file.parent
+        font_path = package_dir / "fonts" / "Poppins-Medium.ttf"
+        if font_path.exists():
+            return ImageFont.truetype(str(font_path), size)  # type: ignore[return-value]
+
+        # Fallback: try project root (for development)
         project_root = current_file.parent.parent
         font_path = project_root / "fonts" / "Poppins-Medium.ttf"
         if font_path.exists():
@@ -212,17 +223,17 @@ def draw_overlay_on_image(
     provider_text = config.overlay.provider_name
     temp_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     provider_bbox = temp_draw.textbbox((0, 0), provider_text, font=font)
-    
+
     # Camera name + UTC date/time on top-right, right aligned
     capture_str = capture_time.strftime("%Y-%m-%d %H:%M:%S UTC")
     camera_text = f"{config.overlay.camera_name} - {capture_str}"
     camera_bbox = temp_draw.textbbox((0, 0), camera_text, font=font)
-    
+
     # Calculate common baseline Y position for vertical alignment
     # Use the maximum (most negative) top value to ensure both texts align
     common_top = min(provider_bbox[1], camera_bbox[1])
     common_y = padding - common_top
-    
+
     # Draw provider name (left aligned)
     provider_x = padding
     draw_text_with_shadow(
@@ -236,7 +247,7 @@ def draw_overlay_on_image(
         config.overlay.shadow_offset_y,
         shadow_color,
     )
-    
+
     # Draw camera name + date/time (right aligned)
     camera_text_width = camera_bbox[2] - camera_bbox[0]
     camera_text_height = camera_bbox[3] - camera_bbox[1]

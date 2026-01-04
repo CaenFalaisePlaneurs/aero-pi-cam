@@ -23,9 +23,70 @@ A Python 3.13 background service for Raspberry Pi that captures images from an I
 
 ## Installation
 
-### Quick Install (One Command)
+### Pip Installation (Recommended for Python Package)
 
-**Recommended**: Use the automated installation script:
+**New**: Install as a Python package from GitHub:
+
+```bash
+# Install the package
+pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git
+
+# Run setup (installs system deps, creates service, config)
+sudo aero-pi-cam-setup
+```
+
+Or in one command:
+
+```bash
+sudo pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git && sudo aero-pi-cam-setup
+```
+
+The setup command will:
+- ✅ Check and install system dependencies (ffmpeg, libcairo2-dev)
+- ✅ Create systemd service file
+- ✅ Create configuration template at `/etc/aero-pi-cam/config.yaml`
+- ✅ Enable and optionally start the service
+
+**After installation**, edit the configuration:
+```bash
+sudo nano /etc/aero-pi-cam/config.yaml
+```
+
+Then start the service (if not already started):
+```bash
+sudo systemctl start aero-pi-cam
+sudo systemctl status aero-pi-cam
+```
+
+### Uninstallation (Pip Install)
+
+To uninstall the package:
+
+```bash
+# Step 1: Stop and disable the service (recommended)
+sudo aero-pi-cam-uninstall
+
+# Step 2: Remove the Python package (this will also remove the systemd service file)
+sudo pip uninstall aero-pi-cam
+```
+
+Or in one command:
+
+```bash
+sudo aero-pi-cam-uninstall && sudo pip uninstall aero-pi-cam
+```
+
+The uninstall process will:
+- ✅ Stop and disable the systemd service (via `aero-pi-cam-uninstall`)
+- ✅ Remove the systemd service file (automatically via `pip uninstall`)
+- ✅ Remove Python package files
+- ✅ **Preserve** configuration file at `/etc/aero-pi-cam/config.yaml` (following Debian FHS best practices)
+
+**Note**: The `aero-pi-cam-uninstall` command prepares the system for uninstallation by stopping the service. The actual file removal is handled by `pip uninstall`, which automatically removes files installed via `data_files` (including the systemd service file).
+
+### Quick Install (One Command - Legacy Method)
+
+**Alternative**: Use the automated installation script:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/install.sh | sudo bash
@@ -60,9 +121,9 @@ sudo systemctl start aero-pi-cam
 sudo systemctl status aero-pi-cam
 ```
 
-### Uninstallation
+### Uninstallation (Legacy Method)
 
-To completely remove the service (configuration files will be backed up):
+If you installed using the install script, use the uninstall script:
 
 ```bash
 sudo bash uninstall.sh
@@ -327,7 +388,7 @@ Captured images will be saved to `/opt/webcam-cfp/.debug/capture_YYYYMMDD_HHMMSS
 
 - Ensure `config.yaml` exists and is valid YAML at `/etc/aero-pi-cam/config.yaml`
 - Check file permissions: `sudo chown pi:pi /etc/aero-pi-cam/config.yaml`
-- Validate with: `python3 -c "from src.config import load_config; load_config('/etc/aero-pi-cam/config.yaml')"`
+- Validate with: `python3 -c "from aero_pi_cam.config import load_config; load_config('/etc/aero-pi-cam/config.yaml')"`
 
 ### Python/dependency issues
 

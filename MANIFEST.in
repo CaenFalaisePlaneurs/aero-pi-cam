@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+include config.example.yaml
+include aero-pi-cam.service
+recursive-include fonts *.ttf
+recursive-include images *.svg
+

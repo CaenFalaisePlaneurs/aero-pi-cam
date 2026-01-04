@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from src.config import (
+from aero_pi_cam.config import (
     ApiConfig,
     CameraConfig,
     Config,
@@ -16,7 +16,7 @@ from src.config import (
     OverlayConfig,
     ScheduleConfig,
 )
-from src.overlay import (
+from aero_pi_cam.overlay import (
     add_comprehensive_overlay,
     draw_overlay_on_image,
     draw_text_with_shadow,
@@ -98,7 +98,7 @@ def test_load_poppins_font_with_font_file(mock_config) -> None:
 
 def test_load_poppins_font_fallback() -> None:
     """Test loading Poppins font falls back to default when font missing."""
-    with patch("src.overlay.Path.exists", return_value=False):
+    with patch("aero_pi_cam.overlay.Path.exists", return_value=False):
         font = load_poppins_font(16)
         assert font is not None
         # FreeTypeFont is a subclass, so check for ImageFont base class or FreeTypeFont
@@ -118,8 +118,8 @@ def test_load_poppins_font_exception() -> None:
         return original_truetype(*args, **kwargs)
 
     with (
-        patch("src.overlay.Path.exists", return_value=True),
-        patch("src.overlay.ImageFont.truetype", side_effect=mock_truetype),
+        patch("aero_pi_cam.overlay.Path.exists", return_value=True),
+        patch("aero_pi_cam.overlay.ImageFont.truetype", side_effect=mock_truetype),
     ):
         font = load_poppins_font(16)
         assert font is not None
@@ -149,7 +149,7 @@ def test_load_icon_absolute_path() -> None:
 
 def test_load_icon_exception_handling() -> None:
     """Test load_icon handles exceptions gracefully."""
-    with patch("src.overlay.cairosvg.svg2png", side_effect=Exception("Test error")):
+    with patch("aero_pi_cam.overlay.cairosvg.svg2png", side_effect=Exception("Test error")):
         icon = load_icon("test.svg", 24, is_codebase_icon=False)
         assert icon is None
 
@@ -328,7 +328,7 @@ def test_draw_overlay_on_image_with_logo(mock_config) -> None:
 
     # Create a simple test logo
     test_logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
-    with patch("src.overlay.load_icon", return_value=test_logo):
+    with patch("aero_pi_cam.overlay.load_icon", return_value=test_logo):
         draw_overlay_on_image(
             img, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
         )
@@ -535,7 +535,7 @@ def test_draw_overlay_logo_exception() -> None:
             raise Exception("Logo error")
         return None  # Return None for codebase icons (they're optional)
 
-    with patch("src.overlay.load_icon", side_effect=mock_load_icon):
+    with patch("aero_pi_cam.overlay.load_icon", side_effect=mock_load_icon):
         draw_overlay_on_image(
             img, config, capture_time, sunrise_time, sunset_time, None, None, None
         )
@@ -574,8 +574,8 @@ def test_draw_overlay_logo_paste_exception() -> None:
     # Create a logo that will cause paste to fail
     test_logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
     with (
-        patch("src.overlay.load_icon", return_value=test_logo),
-        patch("src.overlay.paste_image_with_shadow", side_effect=Exception("Paste error")),
+        patch("aero_pi_cam.overlay.load_icon", return_value=test_logo),
+        patch("aero_pi_cam.overlay.paste_image_with_shadow", side_effect=Exception("Paste error")),
     ):
         # Should handle exception gracefully
         try:
