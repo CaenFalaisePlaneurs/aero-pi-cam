@@ -67,7 +67,7 @@ class DebugConfig(BaseModel):
 class ApiConfig(BaseModel):
     """API upload configuration."""
 
-    url: str = Field(..., description="API endpoint URL")
+    url: str | None = Field(None, description="API endpoint URL (optional, uses dummy server if not set)")
     key: str = Field(..., min_length=1, description="API key for authentication")
     timeout_seconds: int = Field(..., ge=1, le=300, description="Request timeout in seconds")
 

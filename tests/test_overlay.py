@@ -20,7 +20,6 @@ from aero_pi_cam.overlay import (
     add_comprehensive_overlay,
     draw_overlay_on_image,
     draw_text_with_shadow,
-    generate_overlay_only,
     load_icon,
     load_poppins_font,
     parse_color,
@@ -336,25 +335,6 @@ def test_draw_overlay_on_image_with_logo(mock_config) -> None:
     # Verify overlay was drawn
     pixels = list(img.getdata())
     assert any(p[3] > 0 for p in pixels)
-
-
-def test_generate_overlay_only(mock_config) -> None:
-    """Test generating overlay-only image."""
-    capture_time = datetime(2026, 1, 2, 12, 0, 0, tzinfo=UTC)
-    sunrise_time = datetime(2026, 1, 2, 7, 0, 0, tzinfo=UTC)
-    sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
-
-    result = generate_overlay_only(
-        800, 600, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
-    )
-
-    assert isinstance(result, bytes)
-    assert len(result) > 0
-
-    # Verify it's a valid PNG
-    img = Image.open(BytesIO(result))
-    assert img.size == (800, 600)
-    assert img.mode == "RGBA"
 
 
 def test_add_comprehensive_overlay(mock_config) -> None:

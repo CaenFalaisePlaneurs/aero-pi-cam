@@ -50,5 +50,5 @@ RUN chmod +x install.sh uninstall.sh setup-venv.sh || true
 #     CMD venv/bin/python -c "from src.config import load_config; load_config()" || exit 1
 
 # Default command - run the application directly (not via systemd)
-CMD ["venv/bin/python", "-m", "src.main"]
+CMD ["venv/bin/python", "-m", "aero_pi_cam.main"]
 

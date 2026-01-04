@@ -16,7 +16,7 @@ try:
     from .capture import capture_frame
     from .config import Config, load_config
     from .metar import fetch_metar, get_raw_metar, get_raw_taf
-    from .overlay import add_comprehensive_overlay, generate_overlay_only
+    from .overlay import add_comprehensive_overlay
     from .sun import get_sun_times, is_day
     from .upload import upload_image
 except ImportError:
@@ -28,7 +28,7 @@ except ImportError:
     from aero_pi_cam.capture import capture_frame
     from aero_pi_cam.config import Config, load_config
     from aero_pi_cam.metar import fetch_metar, get_raw_metar, get_raw_taf
-    from aero_pi_cam.overlay import add_comprehensive_overlay, generate_overlay_only
+    from aero_pi_cam.overlay import add_comprehensive_overlay
     from aero_pi_cam.sun import get_sun_times, is_day
     from aero_pi_cam.upload import upload_image
 
@@ -143,7 +143,7 @@ async def capture_and_upload() -> None:
         )
         image_bytes = result.image
 
-        # Get image dimensions (needed for overlay-only debug image)
+        # Get image dimensions for logging
         img_width, img_height = 2560, 1440  # Default fallback
         try:
             from io import BytesIO
@@ -155,25 +155,6 @@ async def capture_and_upload() -> None:
             print(f"Captured image size: {img_width}x{img_height}")
         except Exception:
             pass
-
-        # In debug mode: save 3 images (capture, overlay, composited)
-        # In normal mode: only use composited image (upload, no disk save)
-        debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
-        if debug_mode:
-            # Use project root for local dev, /opt/webcam-cfp for production
-            project_root = Path(__file__).parent.parent
-            debug_dir = project_root / ".debug"
-            os.makedirs(debug_dir, exist_ok=True)
-            timestamp_str = capture_time.strftime("%Y%m%d_%H%M%S")
-
-            # Save captured image (original, before overlay)
-            debug_filename = str(debug_dir / f"capture_{timestamp_str}.jpg")
-            try:
-                with open(debug_filename, "wb") as f:
-                    f.write(image_bytes)
-                print(f"Saved capture image to {debug_filename}")
-            except Exception:
-                pass
 
         # Add comprehensive overlay with logo, provider info, camera name, UTC timestamp, sunrise/sunset, and METAR
         try:
@@ -200,34 +181,6 @@ async def capture_and_upload() -> None:
                 raw_taf=raw_taf_text,
                 metar_icao=metar_icao_code,
             )
-
-            # In debug mode: save overlay-only and composited images
-            if debug_mode:
-                try:
-                    # Save overlay-only image (transparent background)
-                    overlay_only_bytes = generate_overlay_only(
-                        img_width,
-                        img_height,
-                        config,
-                        capture_time,
-                        sun_times["sunrise"],
-                        sun_times["sunset"],
-                        raw_metar=raw_metar_text,
-                        raw_taf=raw_taf_text,
-                        metar_icao=metar_icao_code,
-                    )
-                    overlay_debug_filename = str(debug_dir / f"overlay_{timestamp_str}.png")
-                    with open(overlay_debug_filename, "wb") as f:
-                        f.write(overlay_only_bytes)
-                    print(f"Saved overlay-only image to {overlay_debug_filename}")
-
-                    # Save composited image (camera + overlay)
-                    composited_filename = str(debug_dir / f"composited_{timestamp_str}.jpg")
-                    with open(composited_filename, "wb") as f:
-                        f.write(image_bytes)
-                    print(f"Saved composited image (camera + overlay) to {composited_filename}")
-                except Exception as e:
-                    print(f"Failed to generate debug images: {e}")
         except Exception as e:
             # Log overlay errors for debugging
             print(f"Overlay failed: {e}")
@@ -238,30 +191,23 @@ async def capture_and_upload() -> None:
             pass
 
         # Upload composited image (camera + overlay)
-        # In debug mode: skip upload (images saved locally)
-        # In normal mode: upload only the composited image
-        debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
+        # Always upload (dummy server will be used in debug mode or if API URL is not set)
+        metadata = {
+            "timestamp": capture_time.isoformat().replace("+00:00", "Z"),
+            "location": config.location.name,
+            "is_day": str(is_day_time),
+        }
+        upload_result = await upload_image(image_bytes, metadata, config.api, config)
 
-        if not debug_enabled:
-            metadata = {
-                "timestamp": capture_time.isoformat().replace("+00:00", "Z"),
-                "location": config.location.name,
-                "is_day": str(is_day_time),
-            }
-            upload_result = await upload_image(image_bytes, metadata, config.api)
+        # Log first API connection
+        if not _api_connected and upload_result.success:
+            print("Connected to API")
+            _api_connected = True
 
-            # Log first API connection
-            if not _api_connected and upload_result.success:
-                print("Connected to API")
-                _api_connected = True
-
-            if upload_result.success:
-                print("Pushed image to API")
-            else:
-                print(f"Failed to push image: {upload_result.error}")
+        if upload_result.success:
+            print("Pushed image to API")
         else:
-            # In debug mode, skip upload since images are saved locally
-            pass
+            print(f"Failed to push image: {upload_result.error}")
 
     except Exception:
         pass
@@ -518,12 +464,15 @@ async def run_service(config_path: str | None = None) -> None:
 
     # Log API URL without credentials
     api_url = config.api.url
-    # Remove query parameters and fragments that might contain secrets
-    if "?" in api_url:
-        api_url = api_url.split("?")[0]
-    if "#" in api_url:
-        api_url = api_url.split("#")[0]
-    print(f"  Upload API: {api_url}")
+    if api_url:
+        # Remove query parameters and fragments that might contain secrets
+        if "?" in api_url:
+            api_url = api_url.split("?")[0]
+        if "#" in api_url:
+            api_url = api_url.split("#")[0]
+        print(f"  Upload API: {api_url}")
+    else:
+        print("  Upload API: (not set, will use dummy server)")
 
     # METAR configuration
     print(f"  METAR overlay: {'enabled' if config.metar.enabled else 'disabled'}")

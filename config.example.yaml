@@ -28,7 +28,8 @@ debug:
   night_interval_seconds: 30  # 30 seconds during night
 
 api:
-  url: "https://api.example.com/api/webcam/image"
+  # API endpoint URL (optional - if not set, dummy server will be used in debug mode)
+  # url: "https://api.example.com/api/webcam/image"
   key: "secret-api-key"
   timeout_seconds: 30
 

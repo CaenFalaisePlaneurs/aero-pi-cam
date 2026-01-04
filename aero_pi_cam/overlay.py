@@ -443,43 +443,6 @@ def draw_overlay_on_image(
             pass
 
 
-def generate_overlay_only(
-    img_width: int,
-    img_height: int,
-    config: Config,
-    capture_time: datetime,
-    sunrise_time: datetime,
-    sunset_time: datetime,
-    raw_metar: str | None = None,
-    raw_taf: str | None = None,
-    metar_icao: str | None = None,
-) -> bytes:
-    """Generate overlay-only image for debugging (transparent background with overlay elements).
-
-    This creates an image showing only the overlay elements on a transparent background,
-    useful for debugging overlay positioning and visibility.
-    """
-    # Create transparent image
-    img = Image.new("RGBA", (img_width, img_height), (0, 0, 0, 0))
-
-    # Draw overlay using shared function
-    draw_overlay_on_image(
-        img,
-        config,
-        capture_time,
-        sunrise_time,
-        sunset_time,
-        raw_metar=raw_metar,
-        raw_taf=raw_taf,
-        metar_icao=metar_icao,
-    )
-
-    # Save as PNG to preserve transparency
-    output = BytesIO()
-    img.save(output, format="PNG")
-    return output.getvalue()
-
-
 def add_comprehensive_overlay(
     image_bytes: bytes,
     config: Config,
