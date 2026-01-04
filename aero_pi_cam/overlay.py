@@ -72,7 +72,7 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
 
 
 def load_poppins_font(size: int) -> ImageFont.ImageFont:
-    """Load Poppins Medium font with fallback to default.
+    """Load Poppins Medium font with fallback to system fonts.
     
     PIL's ImageFont.truetype() uses font size in points (1/72 inch).
     To ensure consistent pixel rendering across platforms (macOS vs Raspberry Pi),
@@ -92,21 +92,68 @@ def load_poppins_font(size: int) -> ImageFont.ImageFont:
     else:
         normalized_size = size
     
-    try:
-        # Try to find font in package directory (for pip-installed package)
-        current_file = Path(__file__)
-        package_dir = current_file.parent
-        font_path = package_dir / "fonts" / "Poppins-Medium.ttf"
-        if font_path.exists():
+    print(f"Font loading: requested size={size}, normalized size={normalized_size}, system={system}")
+    
+    # Try to find font in package directory (for pip-installed package)
+    current_file = Path(__file__)
+    package_dir = current_file.parent
+    font_path = package_dir / "fonts" / "Poppins-Medium.ttf"
+    print(f"Font loading: checking package directory {font_path} (exists: {font_path.exists()})")
+    if font_path.exists():
+        try:
             return ImageFont.truetype(str(font_path), normalized_size)  # type: ignore[return-value]
+        except Exception as e:
+            print(f"WARNING: Failed to load Poppins font from {font_path}: {e}")
 
-        # Fallback: try project root (for development)
-        project_root = current_file.parent.parent
-        font_path = project_root / "fonts" / "Poppins-Medium.ttf"
-        if font_path.exists():
+    # Fallback: try project root (for development)
+    project_root = current_file.parent.parent
+    font_path = project_root / "fonts" / "Poppins-Medium.ttf"
+    print(f"Font loading: checking project root {font_path} (exists: {font_path.exists()})")
+    if font_path.exists():
+        try:
             return ImageFont.truetype(str(font_path), normalized_size)  # type: ignore[return-value]
-    except Exception:
-        pass
+        except Exception as e:
+            print(f"WARNING: Failed to load Poppins font from {font_path}: {e}")
+
+    # Fallback to system fonts that respect size parameter
+    # Try common system fonts available on Linux/macOS
+    print("Font loading: Poppins not found, trying system fonts...")
+    system_fonts = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # DejaVu Sans (common on Linux)
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Liberation Sans (common on Linux)
+        "/System/Library/Fonts/Helvetica.ttc",  # macOS
+        "/Library/Fonts/Arial.ttf",  # macOS
+    ]
+    
+    for font_file in system_fonts:
+        if Path(font_file).exists():
+            print(f"Font loading: trying system font {font_file}")
+            try:
+                font = ImageFont.truetype(font_file, normalized_size)  # type: ignore[return-value]
+                print(f"Font loading: successfully loaded {font_file} at size {normalized_size}")
+                return font
+            except Exception as e:
+                print(f"WARNING: Failed to load system font {font_file}: {e}")
+                continue
+    
+    # Last resort: try to find any TTF font in common system font directories
+    if system == "Linux":
+        common_font_dirs = [
+            "/usr/share/fonts/truetype",
+            "/usr/share/fonts/TTF",
+        ]
+        for font_dir in common_font_dirs:
+            font_dir_path = Path(font_dir)
+            if font_dir_path.exists():
+                # Try to find any sans-serif font
+                for font_file in font_dir_path.rglob("*.ttf"):
+                    try:
+                        return ImageFont.truetype(str(font_file), normalized_size)  # type: ignore[return-value]
+                    except Exception:
+                        continue
+    
+    # Final fallback: default font (doesn't respect size, but better than crashing)
+    print(f"WARNING: Could not load any TrueType font, using default font (size may be incorrect)")
     return ImageFont.load_default()
 
 
