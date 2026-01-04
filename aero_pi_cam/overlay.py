@@ -1,5 +1,6 @@
 """Image overlay with text and SVG icons using Poppins font."""
 
+import platform
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -71,20 +72,39 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
 
 
 def load_poppins_font(size: int) -> ImageFont.ImageFont:
-    """Load Poppins Medium font with fallback to default."""
+    """Load Poppins Medium font with fallback to default.
+    
+    PIL's ImageFont.truetype() uses font size in points (1/72 inch).
+    To ensure consistent pixel rendering across platforms (macOS vs Raspberry Pi),
+    we normalize the font size to account for DPI differences.
+    Standard DPI is 72, but some systems may use 96 DPI or other values.
+    We scale the point size to achieve consistent pixel rendering.
+    """
+    # Normalize font size for consistent rendering across platforms
+    # PIL uses points (1/72 inch), but actual pixel size depends on DPI
+    # On Linux/Raspberry Pi, fonts may render smaller due to different DPI handling
+    # Scale up font size on Linux to match macOS rendering
+    system = platform.system()
+    if system == "Linux":
+        # Scale up font size on Linux to compensate for DPI differences
+        # Typical ratio: 96 DPI (Linux) vs 72 DPI (macOS) = 1.33x
+        normalized_size = int(size * 96 / 72)
+    else:
+        normalized_size = size
+    
     try:
         # Try to find font in package directory (for pip-installed package)
         current_file = Path(__file__)
         package_dir = current_file.parent
         font_path = package_dir / "fonts" / "Poppins-Medium.ttf"
         if font_path.exists():
-            return ImageFont.truetype(str(font_path), size)  # type: ignore[return-value]
+            return ImageFont.truetype(str(font_path), normalized_size)  # type: ignore[return-value]
 
         # Fallback: try project root (for development)
         project_root = current_file.parent.parent
         font_path = project_root / "fonts" / "Poppins-Medium.ttf"
         if font_path.exists():
-            return ImageFont.truetype(str(font_path), size)  # type: ignore[return-value]
+            return ImageFont.truetype(str(font_path), normalized_size)  # type: ignore[return-value]
     except Exception:
         pass
     return ImageFont.load_default()

@@ -276,6 +276,7 @@ def create_systemd_service() -> bool:
         updated_lines = []
         exec_start_found = False
         user_found = False
+        config_path_found = False
 
         for line in lines:
             if line.strip().startswith("ExecStart="):
@@ -292,6 +293,10 @@ def create_systemd_service() -> bool:
             elif line.strip().startswith("Environment=") and "PATH=" in line:
                 # Remove PATH override for pip-installed package
                 pass
+            elif line.strip().startswith("Environment=") and "CONFIG_PATH=" in line:
+                # Update CONFIG_PATH to ensure it's set correctly
+                updated_lines.append('Environment="CONFIG_PATH=/etc/aero-pi-cam/config.yaml"')
+                config_path_found = True
             else:
                 updated_lines.append(line)
 
@@ -318,6 +323,25 @@ def create_systemd_service() -> bool:
                 updated_lines.insert(service_idx + 1, f"User={service_user}")
             else:
                 updated_lines.append(f"User={service_user}")
+        
+        if not config_path_found:
+            # Add CONFIG_PATH if not found (insert after [Service] line, before ExecStart)
+            service_idx = -1
+            for i, line in enumerate(updated_lines):
+                if line.strip().startswith("[Service]"):
+                    service_idx = i
+                    break
+            if service_idx >= 0:
+                # Insert after [Service] but before ExecStart if it exists
+                insert_idx = service_idx + 1
+                # Find ExecStart position to insert before it
+                for i, line in enumerate(updated_lines[insert_idx:], start=insert_idx):
+                    if line.strip().startswith("ExecStart="):
+                        insert_idx = i
+                        break
+                updated_lines.insert(insert_idx, 'Environment="CONFIG_PATH=/etc/aero-pi-cam/config.yaml"')
+            else:
+                updated_lines.append('Environment="CONFIG_PATH=/etc/aero-pi-cam/config.yaml"')
 
         # Write updated service file
         service_file_dest.parent.mkdir(parents=True, exist_ok=True)
