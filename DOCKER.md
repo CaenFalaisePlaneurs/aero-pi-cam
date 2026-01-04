@@ -129,7 +129,7 @@ docker run -d \
 
 #### DEBUG_MODE
 
-Enable debug mode to save captured images to a local `.debug` folder for inspection:
+Enable debug mode to use a local dummy API server for testing:
 
 ```bash
 # Using Docker Compose
@@ -149,9 +149,15 @@ docker run -d \
 ```
 
 When `DEBUG_MODE=true`:
-- Captured images are saved to `.debug/capture_YYYYMMDD_HHMMSS.jpg`
+- A dummy API server automatically starts on `localhost:8000`
+- All image uploads go to the dummy server (ignores `api.url` if set)
+- Images are saved to `.debug/cam/{location}-{camera_name}.jpg` with static filenames
+- Example: `.debug/cam/LFAS-hangar_2.jpg`
 - Images are accessible from outside the container via the mounted volume
-- Useful for verifying image quality, overlay rendering, and debugging capture issues
+- Useful for testing without an external API, verifying image quality, and debugging capture issues
+
+**Testing without API:**
+You can also test without setting `api.url` in `config.yaml`. The dummy server will automatically be used even without `DEBUG_MODE=true`.
 
 ## Network Configuration
 
@@ -160,10 +166,13 @@ When `DEBUG_MODE=true`:
 The container uses `host` network mode to access:
 - RTSP cameras on your local network
 - External APIs (Aviation Weather API, your upload API)
+- Dummy API server (port 8000) when in debug mode
 
 ```yaml
 network_mode: host
 ```
+
+**Note**: With host networking, the dummy API server (when `DEBUG_MODE=true`) is accessible on `localhost:8000` from the host machine.
 
 ### Bridge Network Mode
 
@@ -172,6 +181,7 @@ If you need port isolation, use bridge mode:
 ```yaml
 # In docker-compose.yml, comment out network_mode and use:
 ports:
+  - "8000:8000"  # Dummy API server port (when DEBUG_MODE=true)
   - "8080:8080"  # Example port mapping
 ```
 

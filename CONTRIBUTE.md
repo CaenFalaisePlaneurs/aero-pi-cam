@@ -88,20 +88,21 @@ source venv/bin/activate
 # Optional: specify config path (defaults to config.yaml)
 export CONFIG_PATH=config.yaml
 
-# Optional: enable debug mode to save captured images locally
+# Optional: enable debug mode to use dummy API server
 export DEBUG_MODE=true
 
 # Run the app
-python src/main.py
+python -m aero_pi_cam.main
 ```
 
 The app will:
 - Load configuration from `config.yaml` (or the path specified in `CONFIG_PATH`)
+- Start dummy API server on `localhost:8000` if `DEBUG_MODE=true` or `api.url` is not set
 - Perform an initial capture
 - Start scheduled captures based on day/night intervals
 - Run until interrupted with `Ctrl+C`
 
-**Note**: With `DEBUG_MODE=true`, captured images are saved to `.debug/capture_YYYYMMDD_HHMMSS.jpg` in the project directory for inspection.
+**Note**: With `DEBUG_MODE=true`, a dummy API server runs on `localhost:8000` and saves images to `.debug/cam/{location}-{camera_name}.jpg` (e.g., `.debug/cam/LFAS-hangar_2.jpg`). You can also test without an API by leaving `api.url` unset in the config.
 
 To stop the app, press `Ctrl+C` (handles SIGINT gracefully).
 
@@ -132,7 +133,7 @@ docker-compose down
 - Python 3.13.5 environment matching Raspberry Pi
 - Isolated testing without affecting local system
 - Easy configuration via mounted `config.yaml`
-- Debug mode support for image inspection
+- Dummy API server for debug mode and testing (no external API needed)
 
 For detailed Docker usage, troubleshooting, and advanced options, see [DOCKER.md](../DOCKER.md).
 

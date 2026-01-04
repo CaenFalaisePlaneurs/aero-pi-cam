@@ -11,7 +11,7 @@ A Python 3.13 background service for Raspberry Pi that captures images from an I
 - **API upload**: PUT requests with retry logic and exponential backoff
 - **METAR overlay**: Optional weather information overlay from Aviation Weather API
 - **Icon support**: Add SVG icons to overlay (URL, local file, or inline)
-- **Debug mode**: Save captured images locally for inspection
+- **Debug mode**: Uses dummy API server for testing (saves images locally, no external API needed)
 - **Systemd service**: Auto-start, auto-restart, journald logging
 
 ## Requirements
@@ -28,8 +28,17 @@ A Python 3.13 background service for Raspberry Pi that captures images from an I
 **New**: Install as a Python package from GitHub:
 
 ```bash
-# Install the package
+# Install from main branch (stable)
 pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git
+
+# Install from specific branch (e.g., develop)
+pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop
+
+# Install from GitHub release (uses the release tag, e.g., v1.0.0)
+pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@v1.0.0
+
+# Install from specific commit
+pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@abc123def
 
 # Run setup (installs system deps, creates service, config)
 sudo aero-pi-cam-setup
@@ -38,8 +47,17 @@ sudo aero-pi-cam-setup
 Or in one command:
 
 ```bash
+# From main branch
 sudo pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git && sudo aero-pi-cam-setup
+
+# From develop branch
+sudo pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop && sudo aero-pi-cam-setup
+
+# From specific release (e.g., v1.0.0)
+sudo pip install git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@v1.0.0 && sudo aero-pi-cam-setup
 ```
+
+**Note**: GitHub releases are created from tags, so installing from a release uses the same syntax as installing from a tag. Find available releases and their tags on the [GitHub Releases page](https://github.com/CaenFalaisePlaneurs/aero-pi-cam/releases).
 
 The setup command will:
 - ✅ Check and install system dependencies (ffmpeg, libcairo2-dev)
@@ -212,7 +230,7 @@ sudo chmod 600 /etc/aero-pi-cam/config.yaml
 Edit the configuration:
 - `camera.rtsp_url`: Your camera's RTSP URL
 - `location`: GPS coordinates for sunrise/sunset calculation
-- `api.url`: Your upload API endpoint
+- `api.url`: Your upload API endpoint (optional - uses dummy server if not set)
 - `api.key`: Your API key
 - `metar.enabled`: Set to `true` to enable weather overlay
 
@@ -343,9 +361,17 @@ ffmpeg -rtsp_transport tcp -i 'rtsp://pi:password$@192.168.0.60:554/stream1' -fr
 
 ### Debug Mode
 
-If you're having issues with image capture or overlay, enable debug mode to save captured images locally for inspection.
+Debug mode uses a local dummy API server for testing, eliminating the need for an external API during development.
 
-Edit the systemd service file to enable debug mode:
+**How it works:**
+- When `DEBUG_MODE=true`, the service automatically starts a dummy API server on `localhost:8000`
+- All image uploads go to the dummy server instead of the configured API
+- The dummy server saves images to `.debug/cam/{location}-{camera_name}.jpg` with static filenames
+- No direct file writes - all images go through the upload process (same as production)
+
+**Enable debug mode:**
+
+Edit the systemd service file:
 
 ```bash
 sudo systemctl edit aero-pi-cam
@@ -365,7 +391,13 @@ sudo systemctl daemon-reload
 sudo systemctl restart aero-pi-cam
 ```
 
-Captured images will be saved to `/opt/webcam-cfp/.debug/capture_YYYYMMDD_HHMMSS.jpg` before upload, allowing you to verify image quality and overlay rendering.
+**Image location:**
+- Images are saved to `/opt/webcam-cfp/.debug/cam/{location}-{camera_name}.jpg`
+- Example: `/opt/webcam-cfp/.debug/cam/LFAS-hangar_2.jpg`
+- Filenames are sanitized (spaces → underscores, non-ASCII removed)
+
+**Testing without API:**
+You can also test without an API by leaving `api.url` unset in `config.yaml`. The dummy server will automatically be used.
 
 ### Service won't start
 
