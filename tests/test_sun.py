@@ -15,6 +15,7 @@ def test_get_sun_times() -> None:
         name="LFAS",
         latitude=48.9267952,
         longitude=-0.1477169,
+        camera_heading="000°",
     )
 
     date = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)  # Summer solstice UTC
@@ -33,6 +34,7 @@ def test_is_day_during_daytime() -> None:
         name="LFAS",
         latitude=48.9267952,
         longitude=-0.1477169,
+        camera_heading="000°",
     )
 
     # June 21, 2026 at noon UTC - definitely daytime in France
@@ -46,6 +48,7 @@ def test_is_day_during_nighttime() -> None:
         name="LFAS",
         latitude=48.9267952,
         longitude=-0.1477169,
+        camera_heading="000°",
     )
 
     # January 2, 2026 at 3 AM UTC - definitely night in France
@@ -59,6 +62,7 @@ def test_is_day_at_midnight() -> None:
         name="LFAS",
         latitude=48.9267952,
         longitude=-0.1477169,
+        camera_heading="000°",
     )
 
     midnight = datetime(2026, 6, 21, 0, 0, 0, tzinfo=UTC)
@@ -71,6 +75,7 @@ def test_get_next_capture_interval_day() -> None:
         name="LFAS",
         latitude=48.9267952,
         longitude=-0.1477169,
+        camera_heading="000°",
     )
 
     day_interval = 5
@@ -87,6 +92,7 @@ def test_get_next_capture_interval_night() -> None:
         name="LFAS",
         latitude=48.9267952,
         longitude=-0.1477169,
+        camera_heading="000°",
     )
 
     day_interval = 5
@@ -103,6 +109,7 @@ def test_get_sun_times_with_naive_datetime() -> None:
         name="LFAS",
         latitude=48.9267952,
         longitude=-0.1477169,
+        camera_heading="000°",
     )
 
     # Naive datetime (no timezone)
@@ -123,6 +130,7 @@ def test_get_sun_times_with_non_utc_timezone() -> None:
         name="LFAS",
         latitude=48.9267952,
         longitude=-0.1477169,
+        camera_heading="000°",
     )
 
     # Date with non-UTC timezone (e.g., EST = UTC-5)
@@ -146,6 +154,7 @@ def test_get_sun_times_sunrise_non_utc() -> None:
         name="LFAS",
         latitude=48.9267952,
         longitude=-0.1477169,
+        camera_heading="000°",
     )
 
     date = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)
@@ -173,6 +182,7 @@ def test_get_sun_times_sunset_non_utc() -> None:
         name="LFAS",
         latitude=48.9267952,
         longitude=-0.1477169,
+        camera_heading="000°",
     )
 
     date = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)

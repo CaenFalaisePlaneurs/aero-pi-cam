@@ -13,6 +13,7 @@ def test_validate_correct_config() -> None:
             "name": "LFAS",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -28,6 +29,13 @@ def test_validate_correct_config() -> None:
             "provider_name": "Test Provider",
             "provider_logo": "images/logo.svg",
             "camera_name": "test camera",
+        },
+        "metadata": {
+            "github_repo": "https://github.com/test/repo",
+            "webcam_url": "https://example.com/cam",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "license_mark": "Test license mark",
         },
     }
 
@@ -45,6 +53,7 @@ def test_reject_invalid_rtsp_url() -> None:
             "name": "LFAS",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -60,6 +69,13 @@ def test_reject_invalid_rtsp_url() -> None:
             "provider_name": "Test Provider",
             "provider_logo": "images/logo.svg",
             "camera_name": "test camera",
+        },
+        "metadata": {
+            "github_repo": "https://github.com/test/repo",
+            "webcam_url": "https://example.com/cam",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "license_mark": "Test license mark",
         },
     }
 
@@ -135,6 +151,7 @@ def test_reject_invalid_schedule_interval() -> None:
             "name": "LFAS",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 0, "night_interval_minutes": 60},  # Invalid
         "api": {
@@ -165,6 +182,7 @@ def test_reject_invalid_icao_code_length() -> None:
             "name": "LFAS",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -194,6 +212,7 @@ def test_overlay_shadow_config() -> None:
             "name": "LFAS",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -214,6 +233,13 @@ def test_overlay_shadow_config() -> None:
             "shadow_offset_y": 3,
             "shadow_color": "black",
         },
+        "metadata": {
+            "github_repo": "https://github.com/test/repo",
+            "webcam_url": "https://example.com/cam",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "license_mark": "Test license mark",
+        },
     }
 
     result = validate_config(config_with_shadow)
@@ -231,6 +257,7 @@ def test_uppercase_icao_code() -> None:
             "name": "LFAS",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -247,6 +274,13 @@ def test_uppercase_icao_code() -> None:
             "enabled": False,
             "icao_code": "lfrk",  # Lowercase
         },
+        "metadata": {
+            "github_repo": "https://github.com/test/repo",
+            "webcam_url": "https://example.com/cam",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "license_mark": "Test license mark",
+        },
     }
 
     result = validate_config(config_with_lowercase)
@@ -261,6 +295,7 @@ def test_debug_config_optional() -> None:
             "name": "LFAS",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -277,6 +312,13 @@ def test_debug_config_optional() -> None:
             "provider_logo": "images/logo.svg",
             "camera_name": "test camera",
         },
+        "metadata": {
+            "github_repo": "https://github.com/test/repo",
+            "webcam_url": "https://example.com/cam",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "license_mark": "Test license mark",
+        },
     }
 
     result = validate_config(config_without_debug)
@@ -291,6 +333,7 @@ def test_debug_config_valid() -> None:
             "name": "LFAS",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -310,6 +353,13 @@ def test_debug_config_valid() -> None:
         "debug": {
             "day_interval_seconds": 10,
             "night_interval_seconds": 30,
+        },
+        "metadata": {
+            "github_repo": "https://github.com/test/repo",
+            "webcam_url": "https://example.com/cam",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "license_mark": "Test license mark",
         },
     }
 
@@ -327,6 +377,7 @@ def test_debug_config_defaults() -> None:
             "name": "LFAS",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -347,6 +398,13 @@ def test_debug_config_defaults() -> None:
             "day_interval_seconds": 10,
             "night_interval_seconds": 30,
         },
+        "metadata": {
+            "github_repo": "https://github.com/test/repo",
+            "webcam_url": "https://example.com/cam",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "license_mark": "Test license mark",
+        },
     }
 
     result = validate_config(config_with_debug_minimal)
@@ -363,6 +421,7 @@ def test_reject_invalid_debug_interval() -> None:
             "name": "LFAS",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -404,6 +463,7 @@ def test_load_config_with_path() -> None:
             "name": "TEST",
             "latitude": 48.9267952,
             "longitude": -0.1477169,
+            "camera_heading": "000°",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -419,6 +479,13 @@ def test_load_config_with_path() -> None:
         "metar": {
             "enabled": False,
             "icao_code": "TEST",
+        },
+        "metadata": {
+            "github_repo": "https://github.com/test/repo",
+            "webcam_url": "https://example.com/cam",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "license_mark": "Test license mark",
         },
     }
 

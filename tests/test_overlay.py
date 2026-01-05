@@ -8,6 +8,7 @@ import pytest
 from PIL import Image, ImageDraw, ImageFont
 
 from aero_pi_cam.config import (
+    MetadataConfig,
     ApiConfig,
     CameraConfig,
     Config,
@@ -32,7 +33,7 @@ def mock_config() -> Config:
     """Create a mock config for testing."""
     return Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
+        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169, camera_heading="000°"),
         schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
@@ -47,6 +48,13 @@ def mock_config() -> Config:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=False, icao_code="TEST"),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
 
@@ -243,7 +251,7 @@ def test_draw_overlay_on_image_with_metar(mock_config) -> None:
 
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
+        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169, camera_heading="000°"),
         schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
@@ -258,6 +266,13 @@ def test_draw_overlay_on_image_with_metar(mock_config) -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=True, icao_code="TEST", raw_metar_enabled=True),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     draw_overlay_on_image(
@@ -285,7 +300,7 @@ def test_draw_overlay_on_image_with_taf(mock_config) -> None:
 
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
+        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169, camera_heading="000°"),
         schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
@@ -300,6 +315,13 @@ def test_draw_overlay_on_image_with_taf(mock_config) -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=True, icao_code="TEST", raw_metar_enabled=True),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     draw_overlay_on_image(
@@ -380,7 +402,7 @@ def test_draw_overlay_shadow_disabled() -> None:
     """Test drawing overlay with shadow disabled."""
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
+        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169, camera_heading="000°"),
         schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
@@ -395,6 +417,13 @@ def test_draw_overlay_shadow_disabled() -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=False, icao_code="TEST"),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     img = Image.new("RGBA", (800, 600), (0, 0, 0, 0))
@@ -413,7 +442,7 @@ def test_draw_overlay_text_wrapping() -> None:
     """Test text wrapping in METAR/TAF overlay."""
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
+        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169, camera_heading="000°"),
         schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
@@ -428,6 +457,13 @@ def test_draw_overlay_text_wrapping() -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=True, icao_code="TEST", raw_metar_enabled=True),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     img = Image.new("RGBA", (200, 200), (0, 0, 0, 0))  # Small image to force wrapping
@@ -450,7 +486,7 @@ def test_draw_overlay_taf_with_indentation() -> None:
     """Test TAF text with indentation preservation."""
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
+        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169, camera_heading="000°"),
         schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
@@ -465,6 +501,13 @@ def test_draw_overlay_taf_with_indentation() -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=True, icao_code="TEST", raw_metar_enabled=True),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     img = Image.new("RGBA", (400, 400), (0, 0, 0, 0))
@@ -487,7 +530,7 @@ def test_draw_overlay_logo_exception() -> None:
     """Test drawing overlay handles logo loading exception."""
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
+        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169, camera_heading="000°"),
         schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
@@ -502,6 +545,13 @@ def test_draw_overlay_logo_exception() -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=False, icao_code="TEST"),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     img = Image.new("RGBA", (800, 600), (0, 0, 0, 0))
@@ -529,7 +579,7 @@ def test_draw_overlay_logo_paste_exception() -> None:
     """Test drawing overlay handles logo paste exception."""
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
+        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169, camera_heading="000°"),
         schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
@@ -544,6 +594,13 @@ def test_draw_overlay_logo_paste_exception() -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=False, icao_code="TEST"),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     img = Image.new("RGBA", (800, 600), (0, 0, 0, 0))

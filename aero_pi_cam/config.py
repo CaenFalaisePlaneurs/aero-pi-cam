@@ -38,6 +38,11 @@ class LocationConfig(BaseModel):
     name: str = Field(..., min_length=1, description="Location identifier")
     latitude: float = Field(..., ge=-90, le=90, description="Latitude in degrees")
     longitude: float = Field(..., ge=-180, le=180, description="Longitude in degrees")
+    camera_heading: str = Field(
+        ...,
+        min_length=1,
+        description="Camera heading/direction (e.g., '060° RWY 06')",
+    )
 
 
 class ScheduleConfig(BaseModel):
@@ -121,6 +126,33 @@ class MetarConfig(BaseModel):
         return v.upper()
 
 
+class MetadataConfig(BaseModel):
+    """Metadata configuration for EXIF and XMP embedding."""
+
+    github_repo: str = Field(
+        ...,
+        min_length=1,
+        description="GitHub repository URL for the project",
+    )
+    webcam_url: str = Field(
+        ...,
+        min_length=1,
+        description="URL where the webcam image is published",
+    )
+    license: str = Field(
+        "CC BY-SA 4.0",
+        description="License identifier (e.g., 'CC BY-SA 4.0')",
+    )
+    license_url: str = Field(
+        "https://creativecommons.org/licenses/by-sa/4.0/",
+        description="URL to the license text",
+    )
+    license_mark: str = Field(
+        "This work is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/",
+        description="Short license attribution mark",
+    )
+
+
 class Config(BaseModel):
     """Root configuration model."""
 
@@ -130,6 +162,7 @@ class Config(BaseModel):
     api: ApiConfig
     overlay: OverlayConfig
     metar: MetarConfig
+    metadata: MetadataConfig
     debug: DebugConfig | None = Field(None, description="Optional debug configuration")
 
 

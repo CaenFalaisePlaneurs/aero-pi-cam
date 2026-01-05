@@ -11,6 +11,8 @@ A Python 3.13 background service for Raspberry Pi that captures images from an I
 - **API upload**: PUT requests with retry logic and exponential backoff
 - **METAR overlay**: Optional weather information overlay from Aviation Weather API
 - **Icon support**: Add SVG icons to overlay (URL, local file, or inline)
+- **EXIF metadata**: Automatic embedding of camera info, GPS coordinates, METAR/TAF data, and license information in JPEG images
+- **XMP metadata**: Custom XMP schema with all metadata duplicated for maximum compatibility
 - **Debug mode**: Uses dummy API server for testing (saves images locally, no external API needed)
 - **Systemd service**: Auto-start, auto-restart, journald logging
 
@@ -359,6 +361,11 @@ See `config.example.yaml` for all options:
 | metar | enabled | Enable/disable weather overlay |
 | metar | icao_code | Airport code for METAR data |
 | metar | icon | Optional icon configuration (url/path/svg, size, position) |
+| metadata | github_repo | GitHub repository URL for the project |
+| metadata | webcam_url | URL where webcam images are published |
+| metadata | license | License identifier (e.g., "CC BY-SA 4.0") |
+| metadata | license_url | URL to the license text |
+| metadata | license_mark | Short license attribution mark |
 
 ### Configuration Location
 
@@ -395,6 +402,51 @@ python -m src.main
 3. **Default**: `/etc/aero-pi-cam/config.yaml` (when running as systemd service) or `config.yaml` (when running manually from project directory)
 
 The precedence order is: command-line argument > environment variable > default.
+
+---
+
+## EXIF and XMP Metadata
+
+All captured JPEG images automatically include embedded metadata in both EXIF and XMP formats:
+
+### Standard EXIF Tags
+
+- **ImageDescription**: Camera name
+- **Copyright**: Provider name and license attribution
+- **GPS coordinates**: Camera location (latitude/longitude in degrees/minutes/seconds format)
+
+### Custom Metadata (EXIF UserComment and XMP)
+
+The following metadata is embedded in structured JSON format (EXIF UserComment) and custom XMP schema:
+
+- **camera_name**: Camera identifier
+- **provider_name**: Image provider name
+- **latitude/longitude**: GPS coordinates (decimal degrees)
+- **github_repo**: GitHub repository URL
+- **webcam_url**: URL where webcam images are published
+- **license**: License identifier (e.g., "CC BY-SA 4.0")
+- **license_url**: URL to the license text
+- **license_mark**: Short license attribution mark
+- **airfield_oaci**: Airfield OACI/ICAO code (if METAR enabled)
+- **metar**: Raw METAR text (if METAR enabled)
+- **taf**: Raw TAF text (if METAR enabled)
+- **sunrise/sunset**: Sunrise and sunset times in ISO 8601 UTC format
+
+### XMP Custom Schema
+
+All metadata is also embedded in XMP format using a custom schema (`http://aero-pi-cam.org/xmp/1.0/`) for maximum compatibility with image management software.
+
+### Viewing Metadata
+
+You can view the embedded metadata using standard tools:
+
+```bash
+# Using exiftool (if installed)
+exiftool image.jpg
+
+# Using Python
+python3 -c "import piexif; print(piexif.load(open('image.jpg', 'rb')))"
+```
 
 ---
 

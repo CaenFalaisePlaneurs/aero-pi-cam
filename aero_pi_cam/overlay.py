@@ -13,6 +13,7 @@ from .config import Config
 # Hardcoded icon paths (relative to src/ directory - part of codebase)
 SUNRISE_ICON_PATH = "images/icons/sunrise.svg"
 SUNSET_ICON_PATH = "images/icons/sunset.svg"
+COMPASS_ICON_PATH = "images/icons/compass.svg"
 
 
 def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Image.Image | None:
@@ -408,6 +409,48 @@ def draw_overlay_on_image(
         shadow_color,
     )
 
+    # Camera heading with compass icon (below sun info, right aligned)
+    y_pos = sunrise_y + max(sun_icon_size, sunrise_text_height, sunset_text_height) + line_spacing
+    heading_text = config.location.camera_heading
+
+    # Load compass icon
+    compass_icon = load_icon(COMPASS_ICON_PATH, sun_icon_size, is_codebase_icon=True)
+
+    # Calculate width for camera heading to right-align it
+    heading_bbox = temp_draw.textbbox((0, 0), heading_text, font=font)
+    heading_text_width = heading_bbox[2] - heading_bbox[0]
+
+    # Start from right edge
+    heading_text_x = img_width - padding - heading_text_width
+    heading_icon_x = heading_text_x - icon_spacing - sun_icon_size
+
+    # Paste compass icon and draw text
+    heading_y = y_pos
+    if compass_icon:
+        paste_image_with_shadow(
+            img,
+            compass_icon,
+            (heading_icon_x, heading_y),
+            config.overlay.shadow_enabled,
+            config.overlay.shadow_offset_x,
+            config.overlay.shadow_offset_y,
+            shadow_color,
+        )
+
+    heading_text_height = heading_bbox[3] - heading_bbox[1]
+    heading_text_y = heading_y + (sun_icon_size - heading_text_height) // 2 - heading_bbox[1]
+    draw_text_with_shadow(
+        draw,
+        (heading_text_x, heading_text_y),
+        heading_text,
+        text_color,
+        font,
+        config.overlay.shadow_enabled,
+        config.overlay.shadow_offset_x,
+        config.overlay.shadow_offset_y,
+        shadow_color,
+    )
+
     # Raw METAR and TAF at bottom-left (if enabled and available)
     all_text_lines = []
 
@@ -567,4 +610,31 @@ def add_comprehensive_overlay(
     result_rgb = result_img.convert("RGB")
     output = BytesIO()
     result_rgb.save(output, format="JPEG", quality=90)
-    return output.getvalue()
+    jpeg_bytes = output.getvalue()
+
+    # Embed EXIF and XMP metadata
+    try:
+        from .exif import build_exif_dict, build_xmp_xml, embed_exif_in_jpeg
+
+        exif_dict = build_exif_dict(
+            config,
+            sunrise_time,
+            sunset_time,
+            raw_metar=raw_metar,
+            raw_taf=raw_taf,
+            metar_icao=metar_icao,
+        )
+        xmp_xml = build_xmp_xml(
+            config,
+            sunrise_time,
+            sunset_time,
+            raw_metar=raw_metar,
+            raw_taf=raw_taf,
+            metar_icao=metar_icao,
+        )
+        jpeg_bytes = embed_exif_in_jpeg(jpeg_bytes, exif_dict, xmp_xml=xmp_xml)
+    except Exception as e:
+        # Log warning but continue without EXIF/XMP metadata
+        print(f"WARNING: Failed to embed EXIF/XMP metadata: {e}")
+
+    return jpeg_bytes

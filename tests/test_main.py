@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 import pytest
 
 from aero_pi_cam.config import (
+    MetadataConfig,
     ApiConfig,
     CameraConfig,
     Config,
@@ -21,7 +22,7 @@ def mock_config() -> Config:
     """Create a mock config for testing."""
     return Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
+        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169, camera_heading="000°"),
         schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
@@ -30,6 +31,13 @@ def mock_config() -> Config:
             camera_name="test camera",
         ),
         metar=MetarConfig(enabled=False, icao_code="TEST"),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
 
