@@ -110,7 +110,7 @@ async def capture_and_upload() -> None:
     """Main capture and upload workflow."""
     global is_running, _camera_connected, _api_connected
     if is_running:
-        debug_print("\nCapture skipped: already running")
+        print("Capture skipped: already running (previous capture still in progress)")
         return
 
     if config is None:
@@ -150,7 +150,8 @@ async def capture_and_upload() -> None:
         sunset_str = sun_times["sunset"].strftime("%H:%M:%S UTC")
 
         print(
-            f"Captured image at {time_str} ({mode_str} mode) - Day: {sunrise_str} to {sunset_str}"
+            f"Captured image at {time_str} ({mode_str} mode) - Day: {sunrise_str} to {sunset_str}",
+            flush=True,
         )
         image_bytes = result.image
 
@@ -216,7 +217,7 @@ async def capture_and_upload() -> None:
             _api_connected = True
 
         if upload_result.success:
-            print("Pushed image to API")
+            print("Pushed image to API", flush=True)
         else:
             debug_print(f"Failed to push image: {upload_result.error}")
 
@@ -281,6 +282,8 @@ async def schedule_next_capture() -> None:
         return
 
     now = datetime.now(UTC)
+    time_str = now.strftime("%Y-%m-%d %H:%M:%S UTC")
+    print(f"Re-evaluating schedule at {time_str}")
     is_day_time = get_day_night_mode(now)
     mode_str = "day" if is_day_time else "night"
 
@@ -336,6 +339,8 @@ async def schedule_next_capture() -> None:
             trigger=IntervalTrigger(seconds=interval_seconds),
             id="capture_job",
             max_instances=1,  # Prevent concurrent executions
+            coalesce=True,  # Run at most once if multiple runs are missed
+            misfire_grace_time=60,  # Ignore missed runs if more than 60 seconds late
         )
 
         # Re-evaluate schedule every 30 seconds for day/night transitions in debug mode
@@ -343,6 +348,8 @@ async def schedule_next_capture() -> None:
             schedule_next_capture,
             trigger=IntervalTrigger(seconds=30),
             id="schedule_check",
+            coalesce=True,  # Run at most once if multiple runs are missed
+            misfire_grace_time=30,  # Ignore missed runs if more than 30 seconds late
         )
 
         # Log countdown every second in debug mode (with coalesce and misfire_grace_time to avoid missed run warnings)
@@ -392,6 +399,8 @@ async def schedule_next_capture() -> None:
             trigger=IntervalTrigger(minutes=interval_minutes),
             id="capture_job",
             max_instances=1,  # Prevent concurrent executions
+            coalesce=True,  # Run at most once if multiple runs are missed
+            misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
         )
 
         # Re-evaluate schedule every 5 minutes for day/night transitions
@@ -399,6 +408,8 @@ async def schedule_next_capture() -> None:
             schedule_next_capture,
             trigger=IntervalTrigger(minutes=5),
             id="schedule_check",
+            coalesce=True,  # Run at most once if multiple runs are missed
+            misfire_grace_time=300,  # Ignore missed runs if more than 5 minutes late
         )
 
 

@@ -162,7 +162,7 @@ async def upload_image(
         with open(filepath, "wb") as f:
             f.write(image_bytes)
         # Always log saved image location (useful for debugging even in normal mode)
-        print(f"  Saved image to: {filepath}")
+        print(f"  Saved image to: {filepath}", flush=True)
     except Exception as e:
         if debug_mode:
             print(f"  Error saving image: {e}")
