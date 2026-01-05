@@ -42,6 +42,7 @@ overlay:
   camera_name: "hangar 1"
   font_color: "white"
   font_size: 16
+  font_path: null  # Optional: path to custom font file (e.g., ~/fonts/Poppins-Medium.ttf). Supports ~ expansion for home directory. If null or not found, uses system font.
   sun_icon_size: 24  # Sunrise/sunset icon size in pixels
   line_spacing: 4  # Line spacing in pixels between overlay elements
   padding: 15  # Padding in pixels from image borders

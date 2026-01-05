@@ -1,6 +1,5 @@
 """Image overlay with text and SVG icons using Poppins font."""
 
-import importlib.resources
 import platform
 from datetime import datetime
 from io import BytesIO
@@ -73,14 +72,18 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
         return None
 
 
-def load_poppins_font(size: int) -> ImageFont.ImageFont:
-    """Load Poppins Medium font with fallback to system fonts.
+def load_poppins_font(size: int, font_path: str | None = None) -> ImageFont.ImageFont:
+    """Load font with fallback to system fonts.
     
     PIL's ImageFont.truetype() uses font size in points (1/72 inch).
     To ensure consistent pixel rendering across platforms (macOS vs Raspberry Pi),
     we normalize the font size to account for DPI differences.
     Standard DPI is 72, but some systems may use 96 DPI or other values.
     We scale the point size to achieve consistent pixel rendering.
+    
+    Args:
+        size: Font size in pixels
+        font_path: Optional path to custom font file (supports ~ expansion). If None, uses system font.
     """
     # Normalize font size for consistent rendering across platforms
     # PIL uses points (1/72 inch), but actual pixel size depends on DPI
@@ -96,45 +99,24 @@ def load_poppins_font(size: int) -> ImageFont.ImageFont:
     
     print(f"Font loading: requested size={size}, normalized size={normalized_size}, system={system}")
     
-    # Try to load font from package using importlib.resources (works for installed packages)
-    try:
-        font_resource = importlib.resources.files("aero_pi_cam") / "fonts" / "Poppins-Medium.ttf"
-        print(f"Font loading: checking package resource {font_resource}")
-        # Use as_file() which handles both regular files and files in zip packages
-        with importlib.resources.as_file(font_resource) as font_path:
-            if font_path.exists():
-                print(f"Font loading: found package font at {font_path}")
-                # Load font while the context manager is active (important for zip packages)
-                font = ImageFont.truetype(str(font_path), normalized_size)  # type: ignore[assignment]
-                print(f"Font loading: successfully loaded Poppins font from package")
+    # If custom font path is configured, try to load it first
+    if font_path:
+        # Expand ~ to home directory
+        expanded_path = Path(font_path).expanduser()
+        print(f"Font loading: checking configured font path {expanded_path} (exists: {expanded_path.exists()})")
+        if expanded_path.exists():
+            try:
+                font = ImageFont.truetype(str(expanded_path), normalized_size)  # type: ignore[assignment]
+                print(f"Font loading: successfully loaded font from {expanded_path}")
                 return font
-    except (ModuleNotFoundError, ImportError, FileNotFoundError, OSError) as e:
-        print(f"Font loading: package resource not available: {e}")
-    
-    # Fallback: try package directory using file path (for development or edge cases)
-    current_file = Path(__file__)
-    package_dir = current_file.parent
-    font_path = package_dir / "fonts" / "Poppins-Medium.ttf"
-    print(f"Font loading: checking package directory {font_path} (exists: {font_path.exists()})")
-    if font_path.exists():
-        try:
-            return ImageFont.truetype(str(font_path), normalized_size)  # type: ignore[return-value]
-        except Exception as e:
-            print(f"WARNING: Failed to load Poppins font from {font_path}: {e}")
-
-    # Fallback: try project root (for development)
-    project_root = current_file.parent.parent
-    font_path = project_root / "fonts" / "Poppins-Medium.ttf"
-    print(f"Font loading: checking project root {font_path} (exists: {font_path.exists()})")
-    if font_path.exists():
-        try:
-            return ImageFont.truetype(str(font_path), normalized_size)  # type: ignore[return-value]
-        except Exception as e:
-            print(f"WARNING: Failed to load Poppins font from {font_path}: {e}")
+            except Exception as e:
+                print(f"WARNING: Failed to load font from {expanded_path}: {e}")
+        else:
+            print(f"WARNING: Configured font path does not exist: {expanded_path}")
 
     # Fallback to system fonts that respect size parameter
     # Try common system fonts available on Linux/macOS
-    print("Font loading: Poppins not found, trying system fonts...")
+    print("Font loading: custom font not configured or not found, trying system fonts...")
     system_fonts = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # DejaVu Sans (common on Linux)
         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Liberation Sans (common on Linux)
@@ -278,10 +260,10 @@ def draw_overlay_on_image(
     draw = ImageDraw.Draw(img)
     img_width, img_height = img.size
 
-    # Load Poppins font using configured size
+    # Load font using configured size and path
     font_size = config.overlay.font_size
-    font = load_poppins_font(font_size)
-    font_small = load_poppins_font(max(8, font_size - 2))  # Smaller font for METAR
+    font = load_poppins_font(font_size, config.overlay.font_path)
+    font_small = load_poppins_font(max(8, font_size - 2), config.overlay.font_path)  # Smaller font for METAR
 
     # Parse text color and shadow settings
     text_color = parse_color(config.overlay.font_color)

@@ -358,6 +358,9 @@ See `config.example.yaml` for all options:
 | api | url | Upload API endpoint |
 | api | key | Bearer token for authentication |
 | api | timeout_seconds | Request timeout |
+| overlay | font_path | Optional path to custom font file (e.g., `~/fonts/Poppins-Medium.ttf`). If not set, uses system font. |
+| overlay | font_size | Font size in pixels |
+| overlay | font_color | Text color (e.g., "white", "black") |
 | metar | enabled | Enable/disable weather overlay |
 | metar | icao_code | Airport code for METAR data |
 | metar | icon | Optional icon configuration (url/path/svg, size, position) |
@@ -366,6 +369,68 @@ See `config.example.yaml` for all options:
 | metadata | license | License identifier (e.g., "CC BY-SA 4.0") |
 | metadata | license_url | URL to the license text |
 | metadata | license_mark | Short license attribution mark |
+
+### Installing Custom Fonts
+
+If you want to use a custom font (ex. Poppins) for the overlay text, you can install it system-wide on your Raspberry Pi. The application will automatically use it if configured in `config.yaml`.
+
+#### Example: Install Poppins System-Wide on Raspberry Pi (Debian/Raspberry Pi OS)
+
+**Steps:**
+
+1. **Create the font directory:**
+   ```bash
+   sudo mkdir -p /usr/share/fonts/truetype/poppins
+   ```
+
+2. **Download fonts directly into the directory:**
+   ```bash
+   sudo wget -O /usr/share/fonts/truetype/poppins/Poppins-Regular.ttf https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Regular.ttf
+   ```
+
+3. **(Optional) Download other weights you need (Bold, Medium, etc.):**
+   ```bash
+   sudo wget -O /usr/share/fonts/truetype/poppins/Poppins-Medium.ttf https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Medium.ttf
+   sudo wget -O /usr/share/fonts/truetype/poppins/Poppins-Bold.ttf https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Bold.ttf
+   ```
+
+4. **Set proper permissions:**
+   ```bash
+   sudo chmod 644 /usr/share/fonts/truetype/poppins/*.ttf
+   ```
+
+5. **Rebuild font cache:**
+   ```bash
+   sudo fc-cache -f -v
+   ```
+
+6. **Verify installation:**
+   ```bash
+   fc-list | grep -i poppins
+   ```
+
+7. **Configure in `config.yaml`:**
+   ```yaml
+   overlay:
+     font_path: "/usr/share/fonts/truetype/poppins/Poppins-Medium.ttf"
+     # Or use ~ expansion for user-specific installation:
+     # font_path: "~/fonts/Poppins-Medium.ttf"
+   ```
+
+**Alternative: User-Specific Installation**
+
+If you prefer to install the font in your home directory (no `sudo` required):
+
+```bash
+# Create fonts directory in your home
+mkdir -p ~/fonts
+
+# Download and copy font
+wget https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Medium.ttf -O ~/fonts/Poppins-Medium.ttf
+
+# Configure in config.yaml
+# font_path: "~/fonts/Poppins-Medium.ttf"
+```
 
 ### Configuration Location
 

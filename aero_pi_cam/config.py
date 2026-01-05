@@ -96,6 +96,9 @@ class OverlayConfig(BaseModel):
     camera_name: str = Field(..., min_length=1, description="Camera identifier")
     font_color: str = Field("white", min_length=1, description="Color for overlay text")
     font_size: int = Field(16, ge=1, description="Font size in pixels")
+    font_path: str | None = Field(
+        None, description="Path to custom font file (e.g., ~/fonts/Poppins-Medium.ttf). If not set, uses system font."
+    )
     sun_icon_size: int = Field(24, ge=1, description="Sunrise/sunset icon size in pixels")
     line_spacing: int = Field(
         4, ge=0, description="Line spacing in pixels between overlay elements"
