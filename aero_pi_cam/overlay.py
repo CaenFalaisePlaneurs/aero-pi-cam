@@ -1,5 +1,6 @@
 """Image overlay with text and SVG icons using Poppins font."""
 
+import importlib.resources
 import platform
 from datetime import datetime
 from io import BytesIO
@@ -95,7 +96,22 @@ def load_poppins_font(size: int) -> ImageFont.ImageFont:
     
     print(f"Font loading: requested size={size}, normalized size={normalized_size}, system={system}")
     
-    # Try to find font in package directory (for pip-installed package)
+    # Try to load font from package using importlib.resources (works for installed packages)
+    try:
+        font_resource = importlib.resources.files("aero_pi_cam") / "fonts" / "Poppins-Medium.ttf"
+        print(f"Font loading: checking package resource {font_resource}")
+        # Use as_file() which handles both regular files and files in zip packages
+        with importlib.resources.as_file(font_resource) as font_path:
+            if font_path.exists():
+                print(f"Font loading: found package font at {font_path}")
+                # Load font while the context manager is active (important for zip packages)
+                font = ImageFont.truetype(str(font_path), normalized_size)  # type: ignore[assignment]
+                print(f"Font loading: successfully loaded Poppins font from package")
+                return font
+    except (ModuleNotFoundError, ImportError, FileNotFoundError, OSError) as e:
+        print(f"Font loading: package resource not available: {e}")
+    
+    # Fallback: try package directory using file path (for development or edge cases)
     current_file = Path(__file__)
     package_dir = current_file.parent
     font_path = package_dir / "fonts" / "Poppins-Medium.ttf"
