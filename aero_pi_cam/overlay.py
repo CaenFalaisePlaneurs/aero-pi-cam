@@ -1,5 +1,6 @@
 """Image overlay with text and SVG icons using Poppins font."""
 
+import os
 import platform
 from datetime import datetime
 from io import BytesIO
@@ -9,6 +10,11 @@ import cairosvg
 from PIL import Image, ImageDraw, ImageFont
 
 from .config import Config
+
+
+def _is_debug_mode() -> bool:
+    """Check if debug mode is enabled."""
+    return os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 # Hardcoded icon paths (relative to src/ directory - part of codebase)
 SUNRISE_ICON_PATH = "images/icons/sunrise.svg"
@@ -22,14 +28,20 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
     Supports both PNG (with transparency) and SVG formats.
 
     Args:
-        icon_path: Path to PNG or SVG file
+        icon_path: Path to PNG or SVG file. Supports absolute paths, ~ expansion, and relative paths.
         size: Icon size in pixels
         is_codebase_icon: If True, path is relative to src/ directory (hardcoded icons).
-                         If False, path is relative to project root (user-configured logos).
+                         If False, path can be absolute, use ~ expansion, or be relative to project root.
     """
     try:
-        icon_file = Path(icon_path)
-        if not icon_file.is_absolute():
+        # Expand ~ to home directory if present
+        icon_file = Path(icon_path).expanduser()
+        
+        if icon_file.is_absolute():
+            # Absolute path (or expanded from ~) - use as-is
+            pass
+        else:
+            # Relative path - resolve relative to package or project root
             current_file = Path(__file__)
             if is_codebase_icon:
                 # Codebase icons are in aero_pi_cam/images/icons/ (package directory)
@@ -97,26 +109,32 @@ def load_poppins_font(size: int, font_path: str | None = None) -> ImageFont.Imag
     else:
         normalized_size = size
     
-    print(f"Font loading: requested size={size}, normalized size={normalized_size}, system={system}")
+    if _is_debug_mode():
+        print(f"Font loading: requested size={size}, normalized size={normalized_size}, system={system}")
     
     # If custom font path is configured, try to load it first
     if font_path:
         # Expand ~ to home directory
         expanded_path = Path(font_path).expanduser()
-        print(f"Font loading: checking configured font path {expanded_path} (exists: {expanded_path.exists()})")
+        if _is_debug_mode():
+            print(f"Font loading: checking configured font path {expanded_path} (exists: {expanded_path.exists()})")
         if expanded_path.exists():
             try:
                 font = ImageFont.truetype(str(expanded_path), normalized_size)  # type: ignore[assignment]
-                print(f"Font loading: successfully loaded font from {expanded_path}")
+                if _is_debug_mode():
+                    print(f"Font loading: successfully loaded font from {expanded_path}")
                 return font
             except Exception as e:
-                print(f"WARNING: Failed to load font from {expanded_path}: {e}")
+                if _is_debug_mode():
+                    print(f"WARNING: Failed to load font from {expanded_path}: {e}")
         else:
-            print(f"WARNING: Configured font path does not exist: {expanded_path}")
+            if _is_debug_mode():
+                print(f"WARNING: Configured font path does not exist: {expanded_path}")
 
     # Fallback to system fonts that respect size parameter
     # Try common system fonts available on Linux/macOS
-    print("Font loading: custom font not configured or not found, trying system fonts...")
+    if _is_debug_mode():
+        print("Font loading: custom font not configured or not found, trying system fonts...")
     system_fonts = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # DejaVu Sans (common on Linux)
         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Liberation Sans (common on Linux)
@@ -126,13 +144,16 @@ def load_poppins_font(size: int, font_path: str | None = None) -> ImageFont.Imag
     
     for font_file in system_fonts:
         if Path(font_file).exists():
-            print(f"Font loading: trying system font {font_file}")
+            if _is_debug_mode():
+                print(f"Font loading: trying system font {font_file}")
             try:
                 font = ImageFont.truetype(font_file, normalized_size)  # type: ignore[return-value]
-                print(f"Font loading: successfully loaded {font_file} at size {normalized_size}")
+                if _is_debug_mode():
+                    print(f"Font loading: successfully loaded {font_file} at size {normalized_size}")
                 return font
             except Exception as e:
-                print(f"WARNING: Failed to load system font {font_file}: {e}")
+                if _is_debug_mode():
+                    print(f"WARNING: Failed to load system font {font_file}: {e}")
                 continue
     
     # Last resort: try to find any TTF font in common system font directories
@@ -152,7 +173,8 @@ def load_poppins_font(size: int, font_path: str | None = None) -> ImageFont.Imag
                         continue
     
     # Final fallback: default font (doesn't respect size, but better than crashing)
-    print(f"WARNING: Could not load any TrueType font, using default font (size may be incorrect)")
+    if _is_debug_mode():
+        print(f"WARNING: Could not load any TrueType font, using default font (size may be incorrect)")
     return ImageFont.load_default()
 
 
@@ -570,11 +592,13 @@ def add_comprehensive_overlay(
         camera_img = Image.open(BytesIO(image_bytes)).convert("RGBA")
         img_width, img_height = camera_img.size
     except Exception as e:
-        print(f"ERROR: Failed to open image for overlay: {e}")
+        if _is_debug_mode():
+            print(f"ERROR: Failed to open image for overlay: {e}")
         return image_bytes
 
     # Log actual image dimensions for debugging
-    print(f"Overlay: Image size is {img_width}x{img_height}")
+    if _is_debug_mode():
+        print(f"Overlay: Image size is {img_width}x{img_height}")
 
     # Generate overlay on transparent image using shared function
     overlay_img = Image.new("RGBA", (img_width, img_height), (0, 0, 0, 0))
@@ -595,10 +619,11 @@ def add_comprehensive_overlay(
         for x in range(0, min(100, img_width), 10)
         for y in range(0, min(100, img_height), 10)
     )
-    print(
-        f"Overlay: Has content: {overlay_has_content}, Size: {overlay_img.size}, Mode: {overlay_img.mode}"
-    )
-    print(f"Camera: Size: {camera_img.size}, Mode: {camera_img.mode}")
+    if _is_debug_mode():
+        print(
+            f"Overlay: Has content: {overlay_has_content}, Size: {overlay_img.size}, Mode: {overlay_img.mode}"
+        )
+        print(f"Camera: Size: {camera_img.size}, Mode: {camera_img.mode}")
 
     # Composite overlay on top of camera image using alpha compositing
     # Both images must be RGBA and same size
@@ -633,6 +658,7 @@ def add_comprehensive_overlay(
         jpeg_bytes = embed_exif_in_jpeg(jpeg_bytes, exif_dict, xmp_xml=xmp_xml)
     except Exception as e:
         # Log warning but continue without EXIF/XMP metadata
-        print(f"WARNING: Failed to embed EXIF/XMP metadata: {e}")
+        if _is_debug_mode():
+            print(f"WARNING: Failed to embed EXIF/XMP metadata: {e}")
 
     return jpeg_bytes

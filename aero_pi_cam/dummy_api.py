@@ -77,14 +77,17 @@ async def upload_image(
     x_is_day = headers.get("X-Is-Day")
     authorization = headers.get("Authorization")
 
-    # Log request
-    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
-    print(f"\n[{timestamp}] Dummy API: PUT /api/webcam/image")
+    # Log request (debug only)
+    debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
+    if debug_mode:
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+        print(f"\n[{timestamp}] Dummy API: PUT /api/webcam/image")
 
     # Read image body (needed for error simulation and saving)
     image_bytes = await request.body()
     image_size = len(image_bytes)
-    print(f"  Image size: {image_size} bytes")
+    if debug_mode:
+        print(f"  Image size: {image_size} bytes")
 
     # Handle error simulation (takes precedence over validation)
     if error is not None:
@@ -100,28 +103,31 @@ async def upload_image(
             504: "Gateway timeout - request took too long to process",
         }
         error_msg = error_messages.get(error, "Error occurred")
-        print(f"  Simulating error: HTTP {error}")
+        if debug_mode:
+            print(f"  Simulating error: HTTP {error}")
         response = JSONResponse(status_code=error, content={"error": error_msg})
         if error == 429:
             response.headers["Retry-After"] = "60"
-        print(f"  Simulating error: HTTP {error}")
         return response
 
     # Validate required headers (only if not simulating error)
     if not x_capture_timestamp:
-        print("  Error: Missing X-Capture-Timestamp header")
+        if debug_mode:
+            print("  Error: Missing X-Capture-Timestamp header")
         return JSONResponse(
             status_code=400,
             content={"error": "Missing required header: X-Capture-Timestamp"},
         )
     if not x_location:
-        print("  Error: Missing X-Location header")
+        if debug_mode:
+            print("  Error: Missing X-Location header")
         return JSONResponse(
             status_code=400,
             content={"error": "Missing required header: X-Location"},
         )
     if not x_is_day:
-        print("  Error: Missing X-Is-Day header")
+        if debug_mode:
+            print("  Error: Missing X-Is-Day header")
         return JSONResponse(
             status_code=400,
             content={"error": "Missing required header: X-Is-Day"},
@@ -129,18 +135,20 @@ async def upload_image(
 
     # Validate authorization
     if not authorization or not authorization.startswith("Bearer "):
-        print("  Error: Missing or invalid Authorization header")
+        if debug_mode:
+            print("  Error: Missing or invalid Authorization header")
         return JSONResponse(
             status_code=401,
             content={"error": "Invalid or missing authentication token"},
         )
 
-    # Log headers
-    print(f"  Headers:")
-    print(f"    X-Capture-Timestamp: {x_capture_timestamp}")
-    print(f"    X-Location: {x_location}")
-    print(f"    X-Is-Day: {x_is_day}")
-    print(f"    Authorization: Bearer ***")
+    # Log headers (debug only)
+    if debug_mode:
+        print(f"  Headers:")
+        print(f"    X-Capture-Timestamp: {x_capture_timestamp}")
+        print(f"    X-Location: {x_location}")
+        print(f"    X-Is-Day: {x_is_day}")
+        print(f"    Authorization: Bearer ***")
 
     # Save image to .debug/cam/ directory
     project_root = Path(__file__).parent.parent
@@ -153,9 +161,11 @@ async def upload_image(
     try:
         with open(filepath, "wb") as f:
             f.write(image_bytes)
+        # Always log saved image location (useful for debugging even in normal mode)
         print(f"  Saved image to: {filepath}")
     except Exception as e:
-        print(f"  Error saving image: {e}")
+        if debug_mode:
+            print(f"  Error saving image: {e}")
         return JSONResponse(
             status_code=500,
             content={"error": "Failed to save image"},
@@ -168,7 +178,8 @@ async def upload_image(
         "received_at": received_at,
         "size_bytes": image_size,
     }
-    print(f"  Response: HTTP 201 Created")
+    if debug_mode:
+        print(f"  Response: HTTP 201 Created")
     return JSONResponse(status_code=201, content=response_data)
 
 

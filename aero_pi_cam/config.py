@@ -90,7 +90,9 @@ class OverlayConfig(BaseModel):
 
     provider_name: str = Field(..., min_length=1, description="Image provider name")
     provider_logo: str = Field(
-        ..., min_length=1, description="Path to provider logo file (PNG or SVG format)"
+        ...,
+        min_length=1,
+        description="Path to provider logo file (PNG or SVG format). Supports absolute paths and ~ expansion (e.g., ~/images/logo.png).",
     )
     logo_size: int = Field(72, ge=1, description="Logo size in pixels")
     camera_name: str = Field(..., min_length=1, description="Camera identifier")

@@ -42,6 +42,17 @@ _api_connected = False
 _shutdown_event: asyncio.Event | None = None
 
 
+def _is_debug_mode() -> bool:
+    """Check if debug mode is enabled."""
+    return os.getenv("DEBUG_MODE", "false").lower() == "true"
+
+
+def debug_print(*args: object, **kwargs: object) -> None:
+    """Print only if DEBUG_MODE is enabled."""
+    if _is_debug_mode():
+        print(*args, **kwargs)
+
+
 def check_external_dependencies() -> None:
     """Check for required external dependencies and exit if missing."""
     missing_deps: list[str] = []
@@ -99,11 +110,11 @@ async def capture_and_upload() -> None:
     """Main capture and upload workflow."""
     global is_running, _camera_connected, _api_connected
     if is_running:
-        print("\nCapture skipped: already running")
+        debug_print("\nCapture skipped: already running")
         return
 
     if config is None:
-        print("\nCapture skipped: no config")
+        debug_print("\nCapture skipped: no config")
         return
 
     is_running = True
@@ -121,7 +132,7 @@ async def capture_and_upload() -> None:
         )
         if not result.success or not result.image:
             if result.error:
-                print(f"Capture failed: {result.error}")
+                debug_print(f"Capture failed: {result.error}")
             return
 
         # Log first camera connection
@@ -152,7 +163,7 @@ async def capture_and_upload() -> None:
 
             img = Image.open(BytesIO(image_bytes))
             img_width, img_height = img.size
-            print(f"Captured image size: {img_width}x{img_height}")
+            debug_print(f"Captured image size: {img_width}x{img_height}")
         except Exception:
             pass
 
@@ -183,10 +194,10 @@ async def capture_and_upload() -> None:
             )
         except Exception as e:
             # Log overlay errors for debugging
-            print(f"Overlay failed: {e}")
-            import traceback
-
-            traceback.print_exc()
+            debug_print(f"Overlay failed: {e}")
+            if _is_debug_mode():
+                import traceback
+                traceback.print_exc()
             # Continue with original image if overlay fails
             pass
 
@@ -207,7 +218,7 @@ async def capture_and_upload() -> None:
         if upload_result.success:
             print("Pushed image to API")
         else:
-            print(f"Failed to push image: {upload_result.error}")
+            debug_print(f"Failed to push image: {upload_result.error}")
 
     except Exception:
         pass
@@ -299,7 +310,7 @@ async def schedule_next_capture() -> None:
         minutes = (interval_seconds % 3600) // 60
         seconds = interval_seconds % 60
         timer_str = f"{hours}:{minutes:02d}:{seconds:02d}"
-        print(f"Schedule mode: {mode_str} (DEBUG), capture timer: {timer_str}")
+        debug_print(f"Schedule mode: {mode_str} (DEBUG), capture timer: {timer_str}")
 
         # Update or create scheduler
         if scheduler is None:
@@ -355,7 +366,7 @@ async def schedule_next_capture() -> None:
         minutes = interval_minutes % 60
         seconds = 0
         timer_str = f"{hours}:{minutes:02d}:{seconds:02d}"
-        print(f"Schedule mode: {mode_str}, capture timer: {timer_str}")
+        debug_print(f"Schedule mode: {mode_str}, capture timer: {timer_str}")
 
         # Update or create scheduler
         if scheduler is None:
@@ -396,7 +407,7 @@ def shutdown(signum: int, frame: object) -> None:  # noqa: ARG001
     global _shutdown_event
     # Print newline to clear countdown line, then shutdown message
     print()  # Newline to clear the countdown
-    print("Stopping service")
+    debug_print("Stopping service")
     if _shutdown_event:
         _shutdown_event.set()
 
@@ -430,9 +441,9 @@ async def run_service(config_path: str | None = None) -> None:
     # Check debug mode status
     debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
-    # Log configuration summary
-    print("\nConfiguration:")
-    print(f"  Debug mode: {'enabled' if debug_enabled else 'disabled'}")
+    # Log configuration summary (debug only)
+    debug_print("\nConfiguration:")
+    debug_print(f"  Debug mode: {'enabled' if debug_enabled else 'disabled'}")
 
     # Show intervals (debug values if in debug mode, otherwise normal values)
     if debug_enabled:
@@ -445,11 +456,11 @@ async def run_service(config_path: str | None = None) -> None:
     else:
         day_interval = f"{config.schedule.day_interval_minutes}min"
         night_interval = f"{config.schedule.night_interval_minutes}min"
-    print(f"  Day interval: {day_interval}")
-    print(f"  Night interval: {night_interval}")
+    debug_print(f"  Day interval: {day_interval}")
+    debug_print(f"  Night interval: {night_interval}")
 
-    print(f"  Airfield (ICAO): {config.location.name}")
-    print(f"  Location: {config.location.latitude}, {config.location.longitude}")
+    debug_print(f"  Airfield (ICAO): {config.location.name}")
+    debug_print(f"  Location: {config.location.latitude}, {config.location.longitude}")
 
     # Log camera URL without credentials for security
     camera_url = config.camera.rtsp_url
@@ -460,7 +471,7 @@ async def run_service(config_path: str | None = None) -> None:
             scheme_and_host = parts[0].split("://", 1)
             if len(scheme_and_host) == 2:
                 camera_url = f"{scheme_and_host[0]}://***@{parts[1]}"
-    print(f"  Camera: {camera_url}")
+    debug_print(f"  Camera: {camera_url}")
 
     # Log API URL without credentials
     api_url = config.api.url
@@ -470,16 +481,16 @@ async def run_service(config_path: str | None = None) -> None:
             api_url = api_url.split("?")[0]
         if "#" in api_url:
             api_url = api_url.split("#")[0]
-        print(f"  Upload API: {api_url}")
+        debug_print(f"  Upload API: {api_url}")
     else:
-        print("  Upload API: (not set, will use dummy server)")
+        debug_print("  Upload API: (not set, will use dummy server)")
 
     # METAR configuration
-    print(f"  METAR overlay: {'enabled' if config.metar.enabled else 'disabled'}")
+    debug_print(f"  METAR overlay: {'enabled' if config.metar.enabled else 'disabled'}")
     if config.metar.enabled:
-        print(f"  METAR ICAO code: {config.metar.icao_code}")
+        debug_print(f"  METAR ICAO code: {config.metar.icao_code}")
 
-    print()  # Empty line for readability
+    debug_print()  # Empty line for readability
 
     # Run initial capture
     await capture_and_upload()

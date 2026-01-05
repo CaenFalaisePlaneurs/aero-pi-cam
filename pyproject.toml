@@ -31,7 +31,7 @@ aero-pi-cam-uninstall = "aero_pi_cam.uninstall:main"
 packages = ["aero_pi_cam"]
 
 [tool.setuptools.package-data]
-aero_pi_cam = ["images/**/*", "fonts/*.ttf"]
+aero_pi_cam = ["images/**/*"]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

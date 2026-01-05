@@ -37,7 +37,7 @@ api:
 # Overlay configuration
 overlay:
   provider_name: "My Airfield - cam"
-  provider_logo: "images/logo.svg"  # User-configured logo in images/ directory
+  provider_logo: "~/images/logo.svg"  # Path to logo (PNG or SVG). Supports absolute paths, ~ expansion (e.g., ~/images/logo.png), or relative paths.
   logo_size: 72  # Logo size in pixels
   camera_name: "hangar 1"
   font_color: "white"

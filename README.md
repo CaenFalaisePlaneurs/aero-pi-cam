@@ -358,6 +358,8 @@ See `config.example.yaml` for all options:
 | api | url | Upload API endpoint |
 | api | key | Bearer token for authentication |
 | api | timeout_seconds | Request timeout |
+| overlay | provider_logo | Path to logo file (PNG or SVG). Supports absolute paths, ~ expansion (e.g., `~/images/logo.png`), or relative paths. |
+| overlay | logo_size | Logo size in pixels |
 | overlay | font_path | Optional path to custom font file (e.g., `~/fonts/Poppins-Medium.ttf`). If not set, uses system font. |
 | overlay | font_size | Font size in pixels |
 | overlay | font_color | Text color (e.g., "white", "black") |
@@ -431,6 +433,47 @@ wget https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Medium.ttf -O 
 # Configure in config.yaml
 # font_path: "~/fonts/Poppins-Medium.ttf"
 ```
+
+### Configuring the Provider Logo
+
+The provider logo is displayed in the overlay. You can use either a PNG or SVG file. The logo path supports:
+- Absolute paths (e.g., `/home/user/images/logo.png`)
+- Home directory expansion with `~` (e.g., `~/images/logo.png`)
+- Relative paths (relative to project root, for development)
+
+**Steps to upload and configure your logo:**
+
+1. **Create a directory for your logo (optional, but recommended):**
+   ```bash
+   mkdir -p ~/images
+   ```
+
+2. **Upload your logo file to the Raspberry Pi:**
+   - You can use `scp` from your computer:
+     ```bash
+     scp logo.png user@raspberry-pi-ip:~/images/logo.png
+     ```
+   - Or download it directly on the Pi:
+     ```bash
+     wget https://example.com/logo.png -O ~/images/logo.png
+     ```
+
+3. **Configure in `config.yaml`:**
+   ```yaml
+   overlay:
+     provider_logo: "~/images/logo.png"  # Supports ~ expansion
+     # Or use absolute path:
+     # provider_logo: "/home/user/images/logo.png"
+     # Or relative path (for development):
+     # provider_logo: "images/logo.png"
+     logo_size: 72  # Logo size in pixels
+   ```
+
+**Supported formats:**
+- PNG (with transparency support)
+- SVG (automatically converted to PNG)
+
+**Note:** If the logo file is not found at the specified path, the overlay will continue without the logo (no error, graceful degradation).
 
 ### Configuration Location
 
