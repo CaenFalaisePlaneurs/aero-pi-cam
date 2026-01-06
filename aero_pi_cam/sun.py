@@ -62,11 +62,12 @@ def is_day(date: datetime, location: LocationConfig) -> bool:
 def get_next_capture_interval(
     date: datetime,
     location: LocationConfig,
-    day_interval_minutes: int,
-    night_interval_minutes: int,
+    day_interval_seconds: int,
+    night_interval_seconds: int,
 ) -> int:
     """Get the appropriate capture interval based on day/night.
 
     All times are in UTC. The date parameter should be a UTC datetime.
+    Returns interval in seconds.
     """
-    return day_interval_minutes if is_day(date, location) else night_interval_minutes
+    return day_interval_seconds if is_day(date, location) else night_interval_seconds

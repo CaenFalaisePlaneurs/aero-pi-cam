@@ -49,9 +49,11 @@ class LocationConfig(BaseModel):
 class ScheduleConfig(BaseModel):
     """Schedule configuration."""
 
-    day_interval_minutes: int = Field(..., ge=1, le=1440, description="Capture interval during day")
-    night_interval_minutes: int = Field(
-        ..., ge=1, le=1440, description="Capture interval during night"
+    day_interval_seconds: int = Field(
+        ..., ge=1, le=86400, description="Capture interval during day (seconds)"
+    )
+    night_interval_seconds: int = Field(
+        ..., ge=1, le=86400, description="Capture interval during night (seconds)"
     )
 
 
@@ -89,6 +91,10 @@ class SftpConfig(BaseModel):
     password: str = Field(..., min_length=1, description="SFTP password")
     remote_path: str = Field(..., min_length=1, description="Remote directory path for uploads")
     timeout_seconds: int = Field(..., ge=1, le=300, description="Connection timeout in seconds")
+    image_base_url: str | None = Field(
+        None,
+        description="Primary image server domain for image URLs in JSON metadata (e.g., http://caenfal.cluster121.hosting.ovh.net/). If not set, image URLs will be relative paths.",
+    )
 
 
 class OverlayConfig(BaseModel):
@@ -157,7 +163,7 @@ class MetadataConfig(BaseModel):
     webcam_url: str = Field(
         ...,
         min_length=1,
-        description="URL where the webcam image is published",
+        description="Web page URL for viewing webcam images (advertising/promotional URL, not the image server domain)",
     )
     license: str = Field(
         "CC BY-SA 4.0",

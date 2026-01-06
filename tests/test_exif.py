@@ -33,7 +33,7 @@ def mock_config() -> Config:
         location=LocationConfig(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         api=ApiConfig(key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
             provider_name="TEST - example.com/cam",

@@ -36,7 +36,7 @@ def mock_config() -> Config:
         location=LocationConfig(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
             provider_name="Test Provider",
@@ -254,7 +254,7 @@ def test_draw_overlay_on_image_with_metar(mock_config) -> None:
         location=LocationConfig(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
             provider_name="Test Provider",
@@ -304,7 +304,7 @@ def test_draw_overlay_on_image_with_taf(mock_config) -> None:
         location=LocationConfig(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
             provider_name="Test Provider",
@@ -405,7 +405,7 @@ def test_draw_overlay_shadow_disabled() -> None:
         location=LocationConfig(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
             provider_name="Test Provider",
@@ -447,7 +447,7 @@ def test_draw_overlay_text_wrapping() -> None:
         location=LocationConfig(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
             provider_name="Test Provider",
@@ -491,7 +491,7 @@ def test_draw_overlay_taf_with_indentation() -> None:
         location=LocationConfig(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
             provider_name="Test Provider",
@@ -535,7 +535,7 @@ def test_draw_overlay_logo_exception() -> None:
         location=LocationConfig(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
             provider_name="Test Provider",
@@ -584,7 +584,7 @@ def test_draw_overlay_logo_paste_exception() -> None:
         location=LocationConfig(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
             provider_name="Test Provider",

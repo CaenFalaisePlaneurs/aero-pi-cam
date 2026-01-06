@@ -15,7 +15,7 @@ def test_validate_correct_config() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -55,7 +55,7 @@ def test_reject_invalid_rtsp_url() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -92,7 +92,7 @@ def test_reject_invalid_latitude() -> None:
             "latitude": 100,  # Invalid
             "longitude": -0.1477169,
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -122,7 +122,7 @@ def test_reject_invalid_longitude() -> None:
             "latitude": 48.9267952,
             "longitude": 200,  # Invalid
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -153,7 +153,7 @@ def test_reject_invalid_schedule_interval() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 0, "night_interval_minutes": 60},  # Invalid
+        "schedule": {"day_interval_seconds": 0, "night_interval_seconds": 3600},  # Invalid
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -184,7 +184,7 @@ def test_reject_invalid_icao_code_length() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -214,7 +214,7 @@ def test_overlay_shadow_config() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -259,7 +259,7 @@ def test_uppercase_icao_code() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -297,7 +297,7 @@ def test_debug_config_optional() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -335,7 +335,7 @@ def test_debug_config_valid() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -379,7 +379,7 @@ def test_debug_config_defaults() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -423,7 +423,7 @@ def test_reject_invalid_debug_interval() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com/api/webcam/image",
             "key": "secret-key",
@@ -465,7 +465,7 @@ def test_load_config_with_path() -> None:
             "longitude": -0.1,
             "camera_heading": "060° RWY 06",
         },
-        "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
         "api": {
             "url": "https://api.example.com",
             "key": "test-key",

@@ -281,11 +281,24 @@ def draw_overlay_on_image(
     sunset_time: datetime,
     raw_metar: str | None = None,
     raw_taf: str | None = None,
+    include_metar_overlay: bool = True,
+    include_sun_info: bool = True,
 ) -> None:
     """Draw overlay elements on a PIL Image.
 
     This is the shared overlay drawing logic used by both debug and production modes.
     The image should be in RGBA mode to support transparency.
+
+    Args:
+        img: PIL Image to draw on
+        config: Configuration object
+        capture_time: Capture timestamp in UTC
+        sunrise_time: Sunrise time in UTC
+        sunset_time: Sunset time in UTC
+        raw_metar: Optional raw METAR text
+        raw_taf: Optional raw TAF text
+        include_metar_overlay: If False, skip drawing METAR/TAF text overlay (metadata still embedded)
+        include_sun_info: If False, skip drawing sunrise/sunset times and camera heading overlay
     """
     draw = ImageDraw.Draw(img)
     img_width, img_height = img.size
@@ -323,7 +336,7 @@ def draw_overlay_on_image(
     provider_bbox = temp_draw.textbbox((0, 0), provider_text, font=font)
 
     # Camera name + UTC date/time on top-right, right aligned
-    capture_str = capture_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+    capture_str = capture_time.strftime("%Y-%m-%dT%H:%M:%SZ")
     camera_text = f"{config.overlay.camera_name} - {capture_str}"
     camera_bbox = temp_draw.textbbox((0, 0), camera_text, font=font)
 
@@ -363,131 +376,135 @@ def draw_overlay_on_image(
     )
 
     # Sunrise and sunset times with icons (below camera name, right aligned)
-    # Use maximum height of both texts for consistent spacing
-    provider_text_height = provider_bbox[3] - provider_bbox[1]
-    max_text_height = max(provider_text_height, camera_text_height)
-    y_pos = padding + max_text_height + line_spacing
-    sunrise_str = sunrise_time.strftime("%H:%M UTC")
-    sunset_str = sunset_time.strftime("%H:%M UTC")
+    # Only draw if include_sun_info is True
+    if include_sun_info:
+        # Use maximum height of both texts for consistent spacing
+        provider_text_height = provider_bbox[3] - provider_bbox[1]
+        max_text_height = max(provider_text_height, camera_text_height)
+        y_pos = padding + max_text_height + line_spacing
+        sunrise_str = sunrise_time.strftime("%H:%MZ")
+        sunset_str = sunset_time.strftime("%H:%MZ")
 
-    # Load sunrise and sunset icons
-    sun_icon_size = config.overlay.sun_icon_size
-    sunrise_icon = load_icon(SUNRISE_ICON_PATH, sun_icon_size, is_codebase_icon=True)
-    sunset_icon = load_icon(SUNSET_ICON_PATH, sun_icon_size, is_codebase_icon=True)
+        # Load sunrise and sunset icons
+        sun_icon_size = config.overlay.sun_icon_size
+        sunrise_icon = load_icon(SUNRISE_ICON_PATH, sun_icon_size, is_codebase_icon=True)
+        sunset_icon = load_icon(SUNSET_ICON_PATH, sun_icon_size, is_codebase_icon=True)
 
-    # Calculate total width for sunrise + sunset to right-align them
-    sunrise_bbox = temp_draw.textbbox((0, 0), sunrise_str, font=font)
-    sunset_bbox = temp_draw.textbbox((0, 0), sunset_str, font=font)
-    sunrise_text_width = sunrise_bbox[2] - sunrise_bbox[0]
-    sunset_text_width = sunset_bbox[2] - sunset_bbox[0]
+        # Calculate total width for sunrise + sunset to right-align them
+        sunrise_bbox = temp_draw.textbbox((0, 0), sunrise_str, font=font)
+        sunset_bbox = temp_draw.textbbox((0, 0), sunset_str, font=font)
+        sunrise_text_width = sunrise_bbox[2] - sunrise_bbox[0]
+        sunset_text_width = sunset_bbox[2] - sunset_bbox[0]
 
-    # Start from right edge
-    sunset_text_x = img_width - padding - sunset_text_width
-    sunset_icon_x = sunset_text_x - icon_spacing - sun_icon_size
-    sunrise_text_x = sunset_icon_x - 16 - sunrise_text_width
-    sunrise_icon_x = sunrise_text_x - icon_spacing - sun_icon_size
+        # Start from right edge
+        sunset_text_x = img_width - padding - sunset_text_width
+        sunset_icon_x = sunset_text_x - icon_spacing - sun_icon_size
+        sunrise_text_x = sunset_icon_x - 16 - sunrise_text_width
+        sunrise_icon_x = sunrise_text_x - icon_spacing - sun_icon_size
 
-    # Paste icons and draw text
-    sunrise_y = y_pos
-    if sunrise_icon:
-        paste_image_with_shadow(
-            img,
-            sunrise_icon,
-            (sunrise_icon_x, sunrise_y),
+        # Paste icons and draw text
+        sunrise_y = y_pos
+        if sunrise_icon:
+            paste_image_with_shadow(
+                img,
+                sunrise_icon,
+                (sunrise_icon_x, sunrise_y),
+                config.overlay.shadow_enabled,
+                config.overlay.shadow_offset_x,
+                config.overlay.shadow_offset_y,
+                shadow_color,
+            )
+
+        sunrise_text_height = sunrise_bbox[3] - sunrise_bbox[1]
+        sunrise_text_y = sunrise_y + (sun_icon_size - sunrise_text_height) // 2 - sunrise_bbox[1]
+        draw_text_with_shadow(
+            draw,
+            (sunrise_text_x, sunrise_text_y),
+            sunrise_str,
+            text_color,
+            font,
             config.overlay.shadow_enabled,
             config.overlay.shadow_offset_x,
             config.overlay.shadow_offset_y,
             shadow_color,
         )
 
-    sunrise_text_height = sunrise_bbox[3] - sunrise_bbox[1]
-    sunrise_text_y = sunrise_y + (sun_icon_size - sunrise_text_height) // 2 - sunrise_bbox[1]
-    draw_text_with_shadow(
-        draw,
-        (sunrise_text_x, sunrise_text_y),
-        sunrise_str,
-        text_color,
-        font,
-        config.overlay.shadow_enabled,
-        config.overlay.shadow_offset_x,
-        config.overlay.shadow_offset_y,
-        shadow_color,
-    )
+        if sunset_icon:
+            paste_image_with_shadow(
+                img,
+                sunset_icon,
+                (sunset_icon_x, sunrise_y),
+                config.overlay.shadow_enabled,
+                config.overlay.shadow_offset_x,
+                config.overlay.shadow_offset_y,
+                shadow_color,
+            )
 
-    if sunset_icon:
-        paste_image_with_shadow(
-            img,
-            sunset_icon,
-            (sunset_icon_x, sunrise_y),
+        sunset_text_height = sunset_bbox[3] - sunset_bbox[1]
+        sunset_text_y = sunrise_y + (sun_icon_size - sunset_text_height) // 2 - sunset_bbox[1]
+        draw_text_with_shadow(
+            draw,
+            (sunset_text_x, sunset_text_y),
+            sunset_str,
+            text_color,
+            font,
             config.overlay.shadow_enabled,
             config.overlay.shadow_offset_x,
             config.overlay.shadow_offset_y,
             shadow_color,
         )
 
-    sunset_text_height = sunset_bbox[3] - sunset_bbox[1]
-    sunset_text_y = sunrise_y + (sun_icon_size - sunset_text_height) // 2 - sunset_bbox[1]
-    draw_text_with_shadow(
-        draw,
-        (sunset_text_x, sunset_text_y),
-        sunset_str,
-        text_color,
-        font,
-        config.overlay.shadow_enabled,
-        config.overlay.shadow_offset_x,
-        config.overlay.shadow_offset_y,
-        shadow_color,
-    )
+        # Camera heading with compass icon (below sun info, right aligned)
+        y_pos = (
+            sunrise_y + max(sun_icon_size, sunrise_text_height, sunset_text_height) + line_spacing
+        )
+        heading_text = config.location.camera_heading
 
-    # Camera heading with compass icon (below sun info, right aligned)
-    y_pos = sunrise_y + max(sun_icon_size, sunrise_text_height, sunset_text_height) + line_spacing
-    heading_text = config.location.camera_heading
+        # Load compass icon
+        compass_icon = load_icon(COMPASS_ICON_PATH, sun_icon_size, is_codebase_icon=True)
 
-    # Load compass icon
-    compass_icon = load_icon(COMPASS_ICON_PATH, sun_icon_size, is_codebase_icon=True)
+        # Calculate width for camera heading to right-align it
+        heading_bbox = temp_draw.textbbox((0, 0), heading_text, font=font)
+        heading_text_width = heading_bbox[2] - heading_bbox[0]
 
-    # Calculate width for camera heading to right-align it
-    heading_bbox = temp_draw.textbbox((0, 0), heading_text, font=font)
-    heading_text_width = heading_bbox[2] - heading_bbox[0]
+        # Start from right edge
+        heading_text_x = img_width - padding - heading_text_width
+        heading_icon_x = heading_text_x - icon_spacing - sun_icon_size
 
-    # Start from right edge
-    heading_text_x = img_width - padding - heading_text_width
-    heading_icon_x = heading_text_x - icon_spacing - sun_icon_size
+        # Paste compass icon and draw text
+        heading_y = y_pos
+        if compass_icon:
+            paste_image_with_shadow(
+                img,
+                compass_icon,
+                (heading_icon_x, heading_y),
+                config.overlay.shadow_enabled,
+                config.overlay.shadow_offset_x,
+                config.overlay.shadow_offset_y,
+                shadow_color,
+            )
 
-    # Paste compass icon and draw text
-    heading_y = y_pos
-    if compass_icon:
-        paste_image_with_shadow(
-            img,
-            compass_icon,
-            (heading_icon_x, heading_y),
+        heading_text_height = heading_bbox[3] - heading_bbox[1]
+        heading_text_y = heading_y + (sun_icon_size - heading_text_height) // 2 - heading_bbox[1]
+        draw_text_with_shadow(
+            draw,
+            (heading_text_x, heading_text_y),
+            heading_text,
+            text_color,
+            font,
             config.overlay.shadow_enabled,
             config.overlay.shadow_offset_x,
             config.overlay.shadow_offset_y,
             shadow_color,
         )
 
-    heading_text_height = heading_bbox[3] - heading_bbox[1]
-    heading_text_y = heading_y + (sun_icon_size - heading_text_height) // 2 - heading_bbox[1]
-    draw_text_with_shadow(
-        draw,
-        (heading_text_x, heading_text_y),
-        heading_text,
-        text_color,
-        font,
-        config.overlay.shadow_enabled,
-        config.overlay.shadow_offset_x,
-        config.overlay.shadow_offset_y,
-        shadow_color,
-    )
-
-    # Raw METAR and TAF at bottom-left (if enabled and available)
+    # Raw METAR and TAF at bottom-left (if enabled and available and include_metar_overlay is True)
     all_text_lines = []
 
-    if config.metar.raw_metar_enabled and raw_metar:
+    if include_metar_overlay and config.metar.raw_metar_enabled and raw_metar:
         all_text_lines.append(raw_metar)
 
-    if config.metar.raw_metar_enabled and raw_taf:
+    if include_metar_overlay and config.metar.raw_metar_enabled and raw_taf:
         # TAF can have multiple lines - preserve them (keep leading spaces)
         taf_lines = raw_taf.split("\n")
         for i, taf_line in enumerate(taf_lines):
@@ -591,10 +608,26 @@ def add_comprehensive_overlay(
     sunset_time: datetime,
     raw_metar: str | None = None,
     raw_taf: str | None = None,
+    include_metar_overlay: bool = True,
+    include_sun_info: bool = True,
 ) -> bytes:
     """Add comprehensive overlay by compositing overlay image on top of camera image.
 
     Uses the same overlay generation logic as debug mode, but composites it on the camera image.
+
+    Args:
+        image_bytes: Original image bytes
+        config: Configuration object
+        capture_time: Capture timestamp in UTC
+        sunrise_time: Sunrise time in UTC
+        sunset_time: Sunset time in UTC
+        raw_metar: Optional raw METAR text
+        raw_taf: Optional raw TAF text
+        include_metar_overlay: If False, skip drawing METAR/TAF text overlay (metadata still embedded)
+        include_sun_info: If False, skip drawing sunrise/sunset times and camera heading overlay
+
+    Returns:
+        JPEG bytes with overlay and metadata embedded
     """
     try:
         # Load camera image
@@ -619,6 +652,8 @@ def add_comprehensive_overlay(
         sunset_time,
         raw_metar=raw_metar,
         raw_taf=raw_taf,
+        include_metar_overlay=include_metar_overlay,
+        include_sun_info=include_sun_info,
     )
 
     # Check if overlay has any non-transparent pixels (for debugging)

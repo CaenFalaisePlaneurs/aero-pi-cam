@@ -36,6 +36,7 @@ class UploadInterface(Protocol):
         image_bytes: bytes,
         metadata: dict[str, str],
         config: Config,
+        filename: str | None = None,
     ) -> UploadResult:
         """Upload image data.
 
@@ -43,6 +44,7 @@ class UploadInterface(Protocol):
             image_bytes: Image data to upload
             metadata: Metadata dictionary with timestamp, location, is_day
             config: Full configuration object
+            filename: Optional custom filename (if None, uses default from config)
 
         Returns:
             UploadResult with success status and response details
@@ -78,6 +80,7 @@ async def upload_image(
     image_bytes: bytes,
     metadata: dict[str, str],
     config: Config,
+    filename: str | None = None,
 ) -> UploadResult:
     """Upload image using configured upload method.
 
@@ -85,9 +88,10 @@ async def upload_image(
         image_bytes: Image data to upload
         metadata: Metadata dictionary with timestamp, location, is_day
         config: Full configuration object
+        filename: Optional custom filename (if None, uses default from config)
 
     Returns:
         UploadResult with success status and response details
     """
     uploader = create_uploader(config)
-    return await uploader.upload(image_bytes, metadata, config)
+    return await uploader.upload(image_bytes, metadata, config, filename=filename)

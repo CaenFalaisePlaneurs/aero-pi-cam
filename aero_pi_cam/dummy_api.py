@@ -42,18 +42,21 @@ def sanitize_filename(text: str) -> str:
     return text
 
 
-def get_image_filename(config: Config) -> str:
+def get_image_filename(config: Config, clean: bool = False) -> str:
     """Generate sanitized image filename from config.
 
     Args:
         config: Configuration object
+        clean: If True, append "-clean" suffix for image without METAR overlay
 
     Returns:
         Sanitized filename in format: {location.name}-{camera_name}.jpg
+        or {location.name}-{camera_name}-clean.jpg if clean=True
     """
     location_name = sanitize_filename(config.location.name)
     camera_name = sanitize_filename(config.overlay.camera_name)
-    return f"{location_name}-{camera_name}.jpg"
+    suffix = "-clean" if clean else ""
+    return f"{location_name}-{camera_name}{suffix}.jpg"
 
 
 @app.put("/api/webcam/image")
@@ -76,11 +79,12 @@ async def upload_image(
     x_location = headers.get("X-Location")
     x_is_day = headers.get("X-Is-Day")
     authorization = headers.get("Authorization")
+    x_filename = headers.get("X-Filename")  # Optional custom filename
 
     # Log request (debug only)
     debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
     if debug_mode:
-        timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         print(f"\n[{timestamp}] Dummy API: PUT /api/webcam/image")
 
     # Read image body (needed for error simulation and saving)
@@ -155,7 +159,14 @@ async def upload_image(
     debug_dir = project_root / ".debug" / "cam"
     os.makedirs(debug_dir, exist_ok=True)
 
-    filename = get_image_filename(_server_config)
+    # Use custom filename if provided, otherwise generate from config
+    if x_filename:
+        filename = sanitize_filename(x_filename)
+        # Ensure .jpg extension
+        if not filename.endswith(".jpg"):
+            filename = f"{filename}.jpg"
+    else:
+        filename = get_image_filename(_server_config)
     filepath = debug_dir / filename
 
     try:

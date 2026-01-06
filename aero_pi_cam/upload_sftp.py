@@ -7,6 +7,7 @@ import asyncssh
 
 from .config import Config, SftpConfig
 from .dummy_api import get_image_filename
+from .upload_sftp_meta_json import generate_metadata_json
 
 if TYPE_CHECKING:
     from .upload import UploadResult
@@ -28,6 +29,7 @@ class SftpUploader:
         image_bytes: bytes,
         metadata: dict[str, str],
         config: Config,
+        filename: str | None = None,
     ) -> "UploadResult":
         """Upload image via SFTP.
 
@@ -35,6 +37,7 @@ class SftpUploader:
             image_bytes: Image data to upload
             metadata: Metadata dictionary with timestamp, location, is_day
             config: Full configuration object (used for filename generation)
+            filename: Optional custom filename (if None, uses default from config)
 
         Returns:
             UploadResult with success status and error details
@@ -43,9 +46,41 @@ class SftpUploader:
         from .upload import UploadResult
 
         try:
-            # Generate filename from config
-            filename = get_image_filename(config)
+            # Generate filename from config or use provided filename
+            if filename is None:
+                filename = get_image_filename(config)
             remote_file_path = f"{self.sftp_config.remote_path.rstrip('/')}/{filename}"
+
+            # Only generate JSON metadata file for clean image (without METAR overlay)
+            # The clean image is used on our own site where METAR is displayed from cam.json
+            is_clean_image = filename.endswith("-clean.jpg")
+            json_bytes = None
+            json_remote_path = None
+            if is_clean_image:
+                # Determine image base URL (primary image server domain)
+                image_base_url = self.sftp_config.image_base_url
+                if image_base_url is None:
+                    # If not configured, use relative paths (no base URL)
+                    no_metar_image_url = filename
+                    image_with_metar_filename = filename.replace("-clean.jpg", ".jpg")
+                    image_with_metar_url = image_with_metar_filename
+                else:
+                    # Ensure base URL doesn't end with /
+                    image_base_url = image_base_url.rstrip("/")
+                    # Construct URLs for both images
+                    # Clean image URL (without METAR overlay)
+                    no_metar_image_url = f"{image_base_url}/{filename}"
+                    # Image with METAR overlay URL (remove "-clean" suffix)
+                    image_with_metar_filename = filename.replace("-clean.jpg", ".jpg")
+                    image_with_metar_url = f"{image_base_url}/{image_with_metar_filename}"
+
+                # Generate JSON metadata file
+                # path points to image with METAR overlay, no_metar_path points to clean image
+                json_bytes = generate_metadata_json(
+                    metadata, config, image_with_metar_url, no_metar_image_url=no_metar_image_url
+                )
+                json_filename = "cam.json"
+                json_remote_path = f"{self.sftp_config.remote_path.rstrip('/')}/{json_filename}"
 
             async def _upload_operation() -> "UploadResult":
                 """Perform SFTP upload operation."""
@@ -76,15 +111,26 @@ class SftpUploader:
                                     error=f"Failed to create remote directory: {str(e)}",
                                 )
 
-                        # Upload file
+                        # Upload image file
                         try:
                             async with sftp.open(remote_file_path, "wb") as remote_file:
                                 await remote_file.write(image_bytes)
                         except Exception as e:
                             return UploadResult(
                                 success=False,
-                                error=f"Failed to write file to SFTP server: {str(e)}",
+                                error=f"Failed to write image file to SFTP server: {str(e)}",
                             )
+
+                        # Upload JSON metadata file (only for clean image)
+                        if json_bytes is not None and json_remote_path is not None:
+                            try:
+                                async with sftp.open(json_remote_path, "wb") as remote_file:
+                                    await remote_file.write(json_bytes)
+                            except Exception as e:
+                                return UploadResult(
+                                    success=False,
+                                    error=f"Failed to write JSON metadata file to SFTP server: {str(e)}",
+                                )
 
                 return UploadResult(success=True)
 

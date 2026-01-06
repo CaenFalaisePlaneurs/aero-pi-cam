@@ -86,6 +86,7 @@ class ApiUploader:
         image_bytes: bytes,
         metadata: dict[str, str],
         config: Config,
+        filename: str | None = None,
     ) -> "UploadResult":
         """Upload image via API with retry logic and exponential backoff.
 
@@ -93,6 +94,7 @@ class ApiUploader:
             image_bytes: Image data to upload
             metadata: Metadata dictionary with timestamp, location, is_day
             config: Full config object (required for dummy server)
+            filename: Optional custom filename (used by dummy server for saving)
 
         Returns:
             UploadResult with success status and response details
@@ -143,6 +145,9 @@ class ApiUploader:
             "X-Location": metadata["location"],
             "X-Is-Day": metadata["is_day"],
         }
+        # Add custom filename header if provided (used by dummy server)
+        if filename:
+            headers["X-Filename"] = filename
 
         last_error: str | None = None
 

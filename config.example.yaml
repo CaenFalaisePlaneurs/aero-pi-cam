@@ -18,8 +18,8 @@ location:
   # Note: All times are calculated and stored in UTC (aeronautical requirement)
 
 schedule:
-  day_interval_minutes: 5
-  night_interval_minutes: 60
+  day_interval_seconds: 300  # 5 minutes
+  night_interval_seconds: 3600  # 60 minutes
 
 # Upload method: "API" or "SFTP"
 upload_method: "API"  # Choose between "API" or "SFTP"
@@ -39,6 +39,7 @@ api:
 #   password: "your-password-here"  # Required, no default
 #   remote_path: "/remote/path"  # Required, no default (e.g., "/public_html/cam/" or "/home/username/www/")
 #   timeout_seconds: 30  # Required, no default
+#   image_base_url: "http(s)://your-image-server-domain.com"  # Optional: Primary image server domain for image URLs in JSON metadata. If not set, image URLs will be relative paths.
 
 # Debug mode (for development/testing only)
 # Enable via DEBUG_MODE environment variable (DEBUG_MODE=true)
@@ -75,7 +76,7 @@ metar:
 # Metadata configuration for EXIF and XMP embedding
 metadata:
   github_repo: "https://github.com/CaenFalaisePlaneurs/aero-pi-cam"  # GitHub repository URL
-  webcam_url: "https://caenfalaiseplaneurs.fr/cam"  # URL where webcam images are published
+  webcam_url: "https://caenfalaiseplaneurs.fr/cam"  # Web page URL for viewing webcam images (advertising/promotional URL, not the image server domain)
   license: "CC BY-SA 4.0"  # License identifier
   license_url: "https://creativecommons.org/licenses/by-sa/4.0/"  # License URL
   license_mark: "This work is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/"  # Short license attribution

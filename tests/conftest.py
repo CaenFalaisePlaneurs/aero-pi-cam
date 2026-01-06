@@ -26,7 +26,7 @@ def _create_test_config(
         location=LocationConfig(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         upload_method=upload_method,
         api=api_config,
         sftp=sftp_config,

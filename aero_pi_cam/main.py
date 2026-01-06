@@ -15,6 +15,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 try:
     from .capture import capture_frame
     from .config import Config, load_config
+    from .dummy_api import get_image_filename
     from .metar import fetch_metar, get_raw_metar, get_raw_taf
     from .overlay import add_comprehensive_overlay
     from .sun import get_sun_times, is_day
@@ -27,6 +28,7 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from aero_pi_cam.capture import capture_frame
     from aero_pi_cam.config import Config, load_config
+    from aero_pi_cam.dummy_api import get_image_filename
     from aero_pi_cam.metar import fetch_metar, get_raw_metar, get_raw_taf
     from aero_pi_cam.overlay import add_comprehensive_overlay
     from aero_pi_cam.sun import get_sun_times, is_day
@@ -40,6 +42,7 @@ config: Config | None = None
 _camera_connected = False
 _api_connected = False
 _shutdown_event: asyncio.Event | None = None
+_running_task: asyncio.Task | None = None
 
 
 def _is_debug_mode() -> bool:
@@ -108,7 +111,7 @@ def get_day_night_mode(capture_time: datetime) -> bool:
 
 async def capture_and_upload() -> None:
     """Main capture and upload workflow."""
-    global is_running, _camera_connected, _api_connected, _shutdown_event
+    global is_running, _camera_connected, _api_connected, _shutdown_event, _running_task
     if is_running:
         print("Capture skipped: already running (previous capture still in progress)")
         return
@@ -122,6 +125,9 @@ async def capture_and_upload() -> None:
         return
 
     is_running = True
+    task = asyncio.current_task()
+    if task:
+        _running_task = task
     # Clear countdown line and print newline when capture starts
     print()  # Newline to clear countdown
     capture_time = datetime.now(UTC)
@@ -153,13 +159,13 @@ async def capture_and_upload() -> None:
             _camera_connected = True
 
         # Log image capture with date/time and schedule mode (UTC)
-        time_str = capture_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+        time_str = capture_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         mode_str = "day" if is_day_time else "night"
 
         # Get sunrise and sunset times for the day
         sun_times = get_sun_times(capture_time, config.location)
-        sunrise_str = sun_times["sunrise"].strftime("%H:%M:%S UTC")
-        sunset_str = sun_times["sunset"].strftime("%H:%M:%S UTC")
+        sunrise_str = sun_times["sunrise"].strftime("%H:%M:%SZ")
+        sunset_str = sun_times["sunset"].strftime("%H:%M:%SZ")
 
         print(
             f"Captured image at {time_str} ({mode_str} mode) - Day: {sunrise_str} to {sunset_str}",
@@ -192,8 +198,13 @@ async def capture_and_upload() -> None:
                     raw_metar_text = get_raw_metar(metar_result.data)
                     raw_taf_text = get_raw_taf(metar_result.data)
 
-            # Add comprehensive overlay (composites overlay on camera image)
-            image_bytes = add_comprehensive_overlay(
+            # Generate two versions of the image:
+            # 1. With METAR overlay (if enabled) - for publishing on other sites
+            # 2. Without METAR overlay - for our own site (METAR still in metadata)
+            include_metar_overlay = config.metar.enabled and config.metar.raw_metar_enabled
+
+            # Image 1: With METAR overlay (if enabled)
+            image_bytes_with_metar = add_comprehensive_overlay(
                 image_bytes,
                 config,
                 capture_time,
@@ -201,6 +212,20 @@ async def capture_and_upload() -> None:
                 sun_times["sunset"],
                 raw_metar=raw_metar_text,
                 raw_taf=raw_taf_text,
+                include_metar_overlay=include_metar_overlay,
+            )
+
+            # Image 2: Without METAR overlay and without sun info overlay (but all still in metadata)
+            image_bytes_clean = add_comprehensive_overlay(
+                image_bytes,
+                config,
+                capture_time,
+                sun_times["sunrise"],
+                sun_times["sunset"],
+                raw_metar=raw_metar_text,
+                raw_taf=raw_taf_text,
+                include_metar_overlay=False,
+                include_sun_info=False,
             )
         except Exception as e:
             # Log overlay errors for debugging
@@ -209,21 +234,32 @@ async def capture_and_upload() -> None:
                 import traceback
 
                 traceback.print_exc()
-            # Continue with original image if overlay fails
-            pass
+            # Continue with original image if overlay fails (use same image for both)
+            image_bytes_with_metar = image_bytes
+            image_bytes_clean = image_bytes
 
         # Check for shutdown before upload
         if _shutdown_event and _shutdown_event.is_set():
             return
 
-        # Upload composited image (camera + overlay)
-        # Always upload (dummy server will be used in debug mode or if API URL is not set)
+        # Prepare metadata
         metadata = {
             "timestamp": capture_time.isoformat().replace("+00:00", "Z"),
             "location": config.location.name,
             "is_day": str(is_day_time),
+            "raw_metar": raw_metar_text or "",
+            "raw_taf": raw_taf_text or "",
+            "sunrise": sun_times["sunrise"].isoformat().replace("+00:00", "Z"),
+            "sunset": sun_times["sunset"].isoformat().replace("+00:00", "Z"),
+            "camera_heading": config.location.camera_heading,
         }
-        upload_result = await upload_image(image_bytes, metadata, config=config)
+
+        # Upload both images
+        # Image 1: With METAR overlay (default filename)
+        filename_with_metar = get_image_filename(config, clean=False)
+        upload_result = await upload_image(
+            image_bytes_with_metar, metadata, config=config, filename=filename_with_metar
+        )
 
         # Log first connection
         if not _api_connected and upload_result.success:
@@ -235,10 +271,25 @@ async def capture_and_upload() -> None:
         else:
             debug_print(f"Failed to push image: {upload_result.error}")
 
+        # Image 2: Without METAR overlay (clean filename)
+        filename_clean = get_image_filename(config, clean=True)
+        upload_result_clean = await upload_image(
+            image_bytes_clean, metadata, config=config, filename=filename_clean
+        )
+
+        if upload_result_clean.success:
+            debug_print(f"Pushed clean image to {config.upload_method}", flush=True)
+        else:
+            debug_print(f"Failed to push clean image: {upload_result_clean.error}")
+
+    except asyncio.CancelledError:
+        # Task was cancelled during shutdown
+        raise
     except Exception:
         pass
     finally:
         is_running = False
+        _running_task = None
 
 
 async def log_countdown() -> None:
@@ -296,7 +347,7 @@ async def schedule_next_capture() -> None:
         return
 
     now = datetime.now(UTC)
-    time_str = now.strftime("%Y-%m-%d %H:%M:%S UTC")
+    time_str = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     print(f"Re-evaluating schedule at {time_str}")
     is_day_time = get_day_night_mode(now)
     mode_str = "day" if is_day_time else "night"
@@ -377,15 +428,15 @@ async def schedule_next_capture() -> None:
         )
     else:
         # Use the already-calculated is_day_time to select interval
-        interval_minutes = (
-            config.schedule.day_interval_minutes
+        interval_seconds = (
+            config.schedule.day_interval_seconds
             if is_day_time
-            else config.schedule.night_interval_minutes
+            else config.schedule.night_interval_seconds
         )
         # Format timer as h:m:s
-        hours = interval_minutes // 60
-        minutes = interval_minutes % 60
-        seconds = 0
+        hours = interval_seconds // 3600
+        minutes = (interval_seconds % 3600) // 60
+        seconds = interval_seconds % 60
         timer_str = f"{hours}:{minutes:02d}:{seconds:02d}"
         debug_print(f"Schedule mode: {mode_str}, capture timer: {timer_str}")
 
@@ -410,7 +461,7 @@ async def schedule_next_capture() -> None:
 
         scheduler.add_job(
             capture_and_upload,
-            trigger=IntervalTrigger(minutes=interval_minutes),
+            trigger=IntervalTrigger(seconds=interval_seconds),
             id="capture_job",
             max_instances=1,  # Prevent concurrent executions
             coalesce=True,  # Run at most once if multiple runs are missed
@@ -479,8 +530,26 @@ async def run_service(config_path: str | None = None) -> None:
             day_interval = "10s (default)"
             night_interval = "30s (default)"
     else:
-        day_interval = f"{config.schedule.day_interval_minutes}min"
-        night_interval = f"{config.schedule.night_interval_minutes}min"
+        # Format intervals as h:m:s or just seconds if < 60
+        day_hours = config.schedule.day_interval_seconds // 3600
+        day_mins = (config.schedule.day_interval_seconds % 3600) // 60
+        day_secs = config.schedule.day_interval_seconds % 60
+        if day_hours > 0:
+            day_interval = f"{day_hours}h{day_mins:02d}m{day_secs:02d}s"
+        elif day_mins > 0:
+            day_interval = f"{day_mins}m{day_secs:02d}s"
+        else:
+            day_interval = f"{day_secs}s"
+
+        night_hours = config.schedule.night_interval_seconds // 3600
+        night_mins = (config.schedule.night_interval_seconds % 3600) // 60
+        night_secs = config.schedule.night_interval_seconds % 60
+        if night_hours > 0:
+            night_interval = f"{night_hours}h{night_mins:02d}m{night_secs:02d}s"
+        elif night_mins > 0:
+            night_interval = f"{night_mins}m{night_secs:02d}s"
+        else:
+            night_interval = f"{night_secs}s"
     debug_print(f"  Day interval: {day_interval}")
     debug_print(f"  Night interval: {night_interval}")
 
@@ -537,8 +606,27 @@ async def run_service(config_path: str | None = None) -> None:
     except asyncio.CancelledError:
         pass
     finally:
+        # Cancel any running capture task
+        if _running_task and not _running_task.done():
+            _running_task.cancel()
+            try:
+                await asyncio.wait_for(_running_task, timeout=1.0)
+            except (TimeoutError, asyncio.CancelledError, Exception):
+                pass
+
+        # Cancel all other running tasks (scheduler jobs, etc.)
+        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task() and not t.done()]
+        if tasks:
+            for task in tasks:
+                task.cancel()
+            # Wait briefly for tasks to cancel (with timeout)
+            try:
+                await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=1.0)
+            except (TimeoutError, Exception):
+                pass
+
         # Shutdown scheduler gracefully
-        # Use wait=False to avoid blocking if a job is stuck, but give it a short timeout
+        # Use wait=False to avoid blocking if a job is stuck
         if scheduler:
             try:
                 # Remove all jobs first to prevent new ones from starting
