@@ -129,9 +129,7 @@ def test_build_exif_dict_with_metar_taf(mock_config: Config) -> None:
     raw_metar = "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
     raw_taf = "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
 
-    exif_dict = build_exif_dict(
-        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf
-    )
+    exif_dict = build_exif_dict(mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf)
 
     # Check UserComment contains structured JSON
     assert piexif.ExifIFD.UserComment in exif_dict["Exif"]
@@ -249,9 +247,7 @@ def test_embed_exif_verifies_custom_tags(mock_config: Config) -> None:
     sunset = datetime(2026, 1, 2, 17, 45, 0, tzinfo=UTC)
     raw_metar = "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
     raw_taf = "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
-    exif_dict = build_exif_dict(
-        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf
-    )
+    exif_dict = build_exif_dict(mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf)
 
     # Embed EXIF
     result_bytes = embed_exif_in_jpeg(jpeg_bytes, exif_dict)
@@ -279,9 +275,7 @@ def test_build_xmp_xml(mock_config: Config) -> None:
     raw_metar = "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
     raw_taf = "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
 
-    xmp_xml = build_xmp_xml(
-        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf
-    )
+    xmp_xml = build_xmp_xml(mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf)
 
     # Verify XMP structure
     assert '<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>' in xmp_xml

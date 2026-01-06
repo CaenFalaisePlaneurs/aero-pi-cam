@@ -235,9 +235,7 @@ def test_draw_overlay_on_image_basic(mock_config) -> None:
     sunrise_time = datetime(2026, 1, 2, 7, 0, 0, tzinfo=UTC)
     sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
 
-    draw_overlay_on_image(
-        img, mock_config, capture_time, sunrise_time, sunset_time, None, None
-    )
+    draw_overlay_on_image(img, mock_config, capture_time, sunrise_time, sunset_time, None, None)
 
     # Verify overlay was drawn
     pixels = list(img.getdata())
@@ -354,9 +352,7 @@ def test_draw_overlay_on_image_with_logo(mock_config) -> None:
     # Create a simple test logo
     test_logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
     with patch("aero_pi_cam.overlay.load_icon", return_value=test_logo):
-        draw_overlay_on_image(
-            img, mock_config, capture_time, sunrise_time, sunset_time, None, None
-        )
+        draw_overlay_on_image(img, mock_config, capture_time, sunrise_time, sunset_time, None, None)
 
     # Verify overlay was drawn
     pixels = list(img.getdata())
@@ -481,9 +477,7 @@ def test_draw_overlay_text_wrapping() -> None:
 
     # Long METAR text that will wrap
     long_metar = "TEST 021200Z 33009KT 9999 FEW044 04/02 Q1011 NOSIG"
-    draw_overlay_on_image(
-        img, config, capture_time, sunrise_time, sunset_time, long_metar, None
-    )
+    draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, long_metar, None)
 
     # Verify overlay was drawn
     pixels = list(img.getdata())
@@ -527,9 +521,7 @@ def test_draw_overlay_taf_with_indentation() -> None:
 
     # TAF with indentation (leading spaces)
     taf_text = "TEST 021400Z 0215/0224 34010KT 9999 BKN030\n    BECMG 0217/0219 VRB05KT"
-    draw_overlay_on_image(
-        img, config, capture_time, sunrise_time, sunset_time, None, taf_text
-    )
+    draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, None, taf_text)
 
     # Verify overlay was drawn
     pixels = list(img.getdata())
@@ -578,9 +570,7 @@ def test_draw_overlay_logo_exception() -> None:
         return None  # Return None for codebase icons (they're optional)
 
     with patch("aero_pi_cam.overlay.load_icon", side_effect=mock_load_icon):
-        draw_overlay_on_image(
-            img, config, capture_time, sunrise_time, sunset_time, None, None
-        )
+        draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, None, None)
 
     # Should not crash, overlay should still be drawn
     pixels = list(img.getdata())
@@ -630,9 +620,7 @@ def test_draw_overlay_logo_paste_exception() -> None:
     ):
         # Should handle exception gracefully
         try:
-            draw_overlay_on_image(
-                img, config, capture_time, sunrise_time, sunset_time, None, None
-            )
+            draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, None, None)
         except Exception:
             # If paste fails, it should be caught internally
             pass
