@@ -10,10 +10,10 @@ def test_validate_correct_config() -> None:
     valid_config = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -41,7 +41,7 @@ def test_validate_correct_config() -> None:
 
     result = validate_config(valid_config)
     assert result.camera.rtsp_url == valid_config["camera"]["rtsp_url"]
-    assert result.location.name == "LFAS"
+    assert result.location.name == "TEST"
     assert result.metar.icao_code == "LFRK"
 
 
@@ -50,10 +50,10 @@ def test_reject_invalid_rtsp_url() -> None:
     invalid_config = {
         "camera": {"rtsp_url": "http://invalid"},
         "location": {
-            "name": "LFAS",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -88,7 +88,7 @@ def test_reject_invalid_latitude() -> None:
     invalid_config = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
+            "name": "TEST",
             "latitude": 100,  # Invalid
             "longitude": -0.1477169,
         },
@@ -118,7 +118,7 @@ def test_reject_invalid_longitude() -> None:
     invalid_config = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
+            "name": "TEST",
             "latitude": 48.9267952,
             "longitude": 200,  # Invalid
         },
@@ -148,10 +148,10 @@ def test_reject_invalid_schedule_interval() -> None:
     invalid_config = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 0, "night_interval_minutes": 60},  # Invalid
         "api": {
@@ -179,10 +179,10 @@ def test_reject_invalid_icao_code_length() -> None:
     invalid_config = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -209,10 +209,10 @@ def test_overlay_shadow_config() -> None:
     config_with_shadow = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -254,10 +254,10 @@ def test_uppercase_icao_code() -> None:
     config_with_lowercase = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -292,10 +292,10 @@ def test_debug_config_optional() -> None:
     config_without_debug = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -330,10 +330,10 @@ def test_debug_config_valid() -> None:
     config_with_debug = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -374,10 +374,10 @@ def test_debug_config_defaults() -> None:
     config_with_debug_minimal = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -418,10 +418,10 @@ def test_reject_invalid_debug_interval() -> None:
     invalid_config = {
         "camera": {"rtsp_url": "rtsp://user:pass@192.168.0.60:554/stream1"},
         "location": {
-            "name": "LFAS",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {
@@ -461,9 +461,9 @@ def test_load_config_with_path() -> None:
         "camera": {"rtsp_url": "rtsp://test:pass@192.168.0.1:554/stream1"},
         "location": {
             "name": "TEST",
-            "latitude": 48.9267952,
-            "longitude": -0.1477169,
-            "camera_heading": "000°",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_minutes": 5, "night_interval_minutes": 60},
         "api": {

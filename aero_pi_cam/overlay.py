@@ -16,6 +16,7 @@ def _is_debug_mode() -> bool:
     """Check if debug mode is enabled."""
     return os.getenv("DEBUG_MODE", "false").lower() == "true"
 
+
 # Hardcoded icon paths (relative to src/ directory - part of codebase)
 SUNRISE_ICON_PATH = "images/icons/sunrise.svg"
 SUNSET_ICON_PATH = "images/icons/sunset.svg"
@@ -36,7 +37,7 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
     try:
         # Expand ~ to home directory if present
         icon_file = Path(icon_path).expanduser()
-        
+
         if icon_file.is_absolute():
             # Absolute path (or expanded from ~) - use as-is
             pass
@@ -86,13 +87,13 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
 
 def load_poppins_font(size: int, font_path: str | None = None) -> ImageFont.ImageFont:
     """Load font with fallback to system fonts.
-    
+
     PIL's ImageFont.truetype() uses font size in points (1/72 inch).
     To ensure consistent pixel rendering across platforms (macOS vs Raspberry Pi),
     we normalize the font size to account for DPI differences.
     Standard DPI is 72, but some systems may use 96 DPI or other values.
     We scale the point size to achieve consistent pixel rendering.
-    
+
     Args:
         size: Font size in pixels
         font_path: Optional path to custom font file (supports ~ expansion). If None, uses system font.
@@ -108,22 +109,26 @@ def load_poppins_font(size: int, font_path: str | None = None) -> ImageFont.Imag
         normalized_size = int(size * 96 / 72)
     else:
         normalized_size = size
-    
+
     if _is_debug_mode():
-        print(f"Font loading: requested size={size}, normalized size={normalized_size}, system={system}")
-    
+        print(
+            f"Font loading: requested size={size}, normalized size={normalized_size}, system={system}"
+        )
+
     # If custom font path is configured, try to load it first
     if font_path:
         # Expand ~ to home directory
         expanded_path = Path(font_path).expanduser()
         if _is_debug_mode():
-            print(f"Font loading: checking configured font path {expanded_path} (exists: {expanded_path.exists()})")
+            print(
+                f"Font loading: checking configured font path {expanded_path} (exists: {expanded_path.exists()})"
+            )
         if expanded_path.exists():
             try:
-                font = ImageFont.truetype(str(expanded_path), normalized_size)  # type: ignore[assignment]
+                font = ImageFont.truetype(str(expanded_path), normalized_size)  # type: ignore[return-value]
                 if _is_debug_mode():
                     print(f"Font loading: successfully loaded font from {expanded_path}")
-                return font
+                return font  # type: ignore[return-value]
             except Exception as e:
                 if _is_debug_mode():
                     print(f"WARNING: Failed to load font from {expanded_path}: {e}")
@@ -141,7 +146,7 @@ def load_poppins_font(size: int, font_path: str | None = None) -> ImageFont.Imag
         "/System/Library/Fonts/Helvetica.ttc",  # macOS
         "/Library/Fonts/Arial.ttf",  # macOS
     ]
-    
+
     for font_file in system_fonts:
         if Path(font_file).exists():
             if _is_debug_mode():
@@ -149,13 +154,15 @@ def load_poppins_font(size: int, font_path: str | None = None) -> ImageFont.Imag
             try:
                 font = ImageFont.truetype(font_file, normalized_size)  # type: ignore[return-value]
                 if _is_debug_mode():
-                    print(f"Font loading: successfully loaded {font_file} at size {normalized_size}")
-                return font
+                    print(
+                        f"Font loading: successfully loaded {font_file} at size {normalized_size}"
+                    )
+                return font  # type: ignore[return-value]
             except Exception as e:
                 if _is_debug_mode():
                     print(f"WARNING: Failed to load system font {font_file}: {e}")
                 continue
-    
+
     # Last resort: try to find any TTF font in common system font directories
     if system == "Linux":
         common_font_dirs = [
@@ -166,15 +173,17 @@ def load_poppins_font(size: int, font_path: str | None = None) -> ImageFont.Imag
             font_dir_path = Path(font_dir)
             if font_dir_path.exists():
                 # Try to find any sans-serif font
-                for font_file in font_dir_path.rglob("*.ttf"):
+                for found_font_path in font_dir_path.rglob("*.ttf"):
                     try:
-                        return ImageFont.truetype(str(font_file), normalized_size)  # type: ignore[return-value]
+                        return ImageFont.truetype(str(found_font_path), normalized_size)  # type: ignore[return-value]
                     except Exception:
                         continue
-    
+
     # Final fallback: default font (doesn't respect size, but better than crashing)
     if _is_debug_mode():
-        print(f"WARNING: Could not load any TrueType font, using default font (size may be incorrect)")
+        print(
+            "WARNING: Could not load any TrueType font, using default font (size may be incorrect)"
+        )
     return ImageFont.load_default()
 
 
@@ -285,7 +294,9 @@ def draw_overlay_on_image(
     # Load font using configured size and path
     font_size = config.overlay.font_size
     font = load_poppins_font(font_size, config.overlay.font_path)
-    font_small = load_poppins_font(max(8, font_size - 2), config.overlay.font_path)  # Smaller font for METAR
+    font_small = load_poppins_font(
+        max(8, font_size - 2), config.overlay.font_path
+    )  # Smaller font for METAR
 
     # Parse text color and shadow settings
     text_color = parse_color(config.overlay.font_color)

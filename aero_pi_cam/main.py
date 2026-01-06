@@ -50,7 +50,7 @@ def _is_debug_mode() -> bool:
 def debug_print(*args: object, **kwargs: object) -> None:
     """Print only if DEBUG_MODE is enabled."""
     if _is_debug_mode():
-        print(*args, **kwargs)
+        print(*args, **kwargs)  # type: ignore[call-overload]
 
 
 def check_external_dependencies() -> None:
@@ -198,6 +198,7 @@ async def capture_and_upload() -> None:
             debug_print(f"Overlay failed: {e}")
             if _is_debug_mode():
                 import traceback
+
                 traceback.print_exc()
             # Continue with original image if overlay fails
             pass
@@ -209,15 +210,15 @@ async def capture_and_upload() -> None:
             "location": config.location.name,
             "is_day": str(is_day_time),
         }
-        upload_result = await upload_image(image_bytes, metadata, config.api, config)
+        upload_result = await upload_image(image_bytes, metadata, config=config)
 
-        # Log first API connection
+        # Log first connection
         if not _api_connected and upload_result.success:
-            print("Connected to API")
+            print(f"Connected to {config.upload_method}")
             _api_connected = True
 
         if upload_result.success:
-            print("Pushed image to API", flush=True)
+            print(f"Pushed image to {config.upload_method}", flush=True)
         else:
             debug_print(f"Failed to push image: {upload_result.error}")
 
@@ -484,17 +485,25 @@ async def run_service(config_path: str | None = None) -> None:
                 camera_url = f"{scheme_and_host[0]}://***@{parts[1]}"
     debug_print(f"  Camera: {camera_url}")
 
-    # Log API URL without credentials
-    api_url = config.api.url
-    if api_url:
-        # Remove query parameters and fragments that might contain secrets
-        if "?" in api_url:
-            api_url = api_url.split("?")[0]
-        if "#" in api_url:
-            api_url = api_url.split("#")[0]
-        debug_print(f"  Upload API: {api_url}")
+    # Log upload method and URL without credentials
+    debug_print(f"  Upload method: {config.upload_method}")
+    if config.upload_method == "API" and config.api is not None:
+        api_url = config.api.url
+        if api_url:
+            # Remove query parameters and fragments that might contain secrets
+            if "?" in api_url:
+                api_url = api_url.split("?")[0]
+            if "#" in api_url:
+                api_url = api_url.split("#")[0]
+            debug_print(f"  Upload API: {api_url}")
+        else:
+            debug_print("  Upload API: (not set, will use dummy server)")
+    elif config.upload_method == "SFTP" and config.sftp is not None:
+        debug_print(
+            f"  Upload SFTP: {config.sftp.host}:{config.sftp.port}{config.sftp.remote_path}"
+        )
     else:
-        debug_print("  Upload API: (not set, will use dummy server)")
+        debug_print(f"  Upload: {config.upload_method} (configuration not available)")
 
     # METAR configuration
     debug_print(f"  METAR overlay: {'enabled' if config.metar.enabled else 'disabled'}")

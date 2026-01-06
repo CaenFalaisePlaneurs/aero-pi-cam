@@ -144,11 +144,11 @@ async def upload_image(
 
     # Log headers (debug only)
     if debug_mode:
-        print(f"  Headers:")
+        print("  Headers:")
         print(f"    X-Capture-Timestamp: {x_capture_timestamp}")
         print(f"    X-Location: {x_location}")
         print(f"    X-Is-Day: {x_is_day}")
-        print(f"    Authorization: Bearer ***")
+        print("    Authorization: Bearer ***")
 
     # Save image to .debug/cam/ directory
     project_root = Path(__file__).parent.parent
@@ -179,7 +179,7 @@ async def upload_image(
         "size_bytes": image_size,
     }
     if debug_mode:
-        print(f"  Response: HTTP 201 Created")
+        print("  Response: HTTP 201 Created")
     return JSONResponse(status_code=201, content=response_data)
 
 
@@ -200,4 +200,3 @@ def get_config() -> Config | None:
         Current configuration or None if not set
     """
     return _server_config
-

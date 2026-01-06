@@ -6,7 +6,7 @@ Also embeds XMP metadata with custom schema.
 """
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime
 from io import BytesIO
 
 import piexif
@@ -91,7 +91,7 @@ def build_exif_dict(
         Dictionary suitable for piexif.dump() containing EXIF data
     """
     # Start with empty EXIF structure
-    exif_dict = {"0th": {}, "Exif": {}, "GPS": {}, "1st": {}}
+    exif_dict: dict[str, dict[int, object]] = {"0th": {}, "Exif": {}, "GPS": {}, "1st": {}}
 
     # Standard EXIF tags
     # ImageDescription (0x010E) - Camera name
@@ -194,32 +194,36 @@ def build_xmp_xml(
         '<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.6.0">',
         '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">',
         f'<rdf:Description rdf:about="" xmlns:{namespace_prefix}="{namespace_uri}">',
-        f'<{namespace_prefix}:camera_name>{escape_xml(config.overlay.camera_name)}</{namespace_prefix}:camera_name>',
-        f'<{namespace_prefix}:provider_name>{escape_xml(config.overlay.provider_name)}</{namespace_prefix}:provider_name>',
-        f'<{namespace_prefix}:latitude>{config.location.latitude}</{namespace_prefix}:latitude>',
-        f'<{namespace_prefix}:longitude>{config.location.longitude}</{namespace_prefix}:longitude>',
-        f'<{namespace_prefix}:github_repo>{escape_xml(config.metadata.github_repo)}</{namespace_prefix}:github_repo>',
-        f'<{namespace_prefix}:webcam_url>{escape_xml(config.metadata.webcam_url)}</{namespace_prefix}:webcam_url>',
-        f'<{namespace_prefix}:license>{escape_xml(config.metadata.license)}</{namespace_prefix}:license>',
-        f'<{namespace_prefix}:license_url>{escape_xml(config.metadata.license_url)}</{namespace_prefix}:license_url>',
-        f'<{namespace_prefix}:license_mark>{escape_xml(config.metadata.license_mark)}</{namespace_prefix}:license_mark>',
-        f'<{namespace_prefix}:camera_heading>{escape_xml(config.location.camera_heading)}</{namespace_prefix}:camera_heading>',
+        f"<{namespace_prefix}:camera_name>{escape_xml(config.overlay.camera_name)}</{namespace_prefix}:camera_name>",
+        f"<{namespace_prefix}:provider_name>{escape_xml(config.overlay.provider_name)}</{namespace_prefix}:provider_name>",
+        f"<{namespace_prefix}:latitude>{config.location.latitude}</{namespace_prefix}:latitude>",
+        f"<{namespace_prefix}:longitude>{config.location.longitude}</{namespace_prefix}:longitude>",
+        f"<{namespace_prefix}:github_repo>{escape_xml(config.metadata.github_repo)}</{namespace_prefix}:github_repo>",
+        f"<{namespace_prefix}:webcam_url>{escape_xml(config.metadata.webcam_url)}</{namespace_prefix}:webcam_url>",
+        f"<{namespace_prefix}:license>{escape_xml(config.metadata.license)}</{namespace_prefix}:license>",
+        f"<{namespace_prefix}:license_url>{escape_xml(config.metadata.license_url)}</{namespace_prefix}:license_url>",
+        f"<{namespace_prefix}:license_mark>{escape_xml(config.metadata.license_mark)}</{namespace_prefix}:license_mark>",
+        f"<{namespace_prefix}:camera_heading>{escape_xml(config.location.camera_heading)}</{namespace_prefix}:camera_heading>",
     ]
 
     if metar_icao:
-        xml_parts.append(f'<{namespace_prefix}:airfield_oaci>{escape_xml(metar_icao)}</{namespace_prefix}:airfield_oaci>')
+        xml_parts.append(
+            f"<{namespace_prefix}:airfield_oaci>{escape_xml(metar_icao)}</{namespace_prefix}:airfield_oaci>"
+        )
 
     if raw_metar:
-        xml_parts.append(f'<{namespace_prefix}:metar>{escape_xml(raw_metar)}</{namespace_prefix}:metar>')
+        xml_parts.append(
+            f"<{namespace_prefix}:metar>{escape_xml(raw_metar)}</{namespace_prefix}:metar>"
+        )
 
     if raw_taf:
-        xml_parts.append(f'<{namespace_prefix}:taf>{escape_xml(raw_taf)}</{namespace_prefix}:taf>')
+        xml_parts.append(f"<{namespace_prefix}:taf>{escape_xml(raw_taf)}</{namespace_prefix}:taf>")
 
     xml_parts.extend(
         [
-            f'<{namespace_prefix}:sunrise>{sunrise_str}</{namespace_prefix}:sunrise>',
-            f'<{namespace_prefix}:sunset>{sunset_str}</{namespace_prefix}:sunset>',
-            f"</rdf:Description>",
+            f"<{namespace_prefix}:sunrise>{sunrise_str}</{namespace_prefix}:sunrise>",
+            f"<{namespace_prefix}:sunset>{sunset_str}</{namespace_prefix}:sunset>",
+            "</rdf:Description>",
             "</rdf:RDF>",
             "</x:xmpmeta>",
         ]
@@ -256,7 +260,7 @@ def embed_xmp_in_jpeg(jpeg_bytes: bytes, xmp_xml: str) -> bytes:
     # JPEG file structure: SOI (0xFFD8) followed by segments
     # Each segment: 0xFF + marker + 2-byte length + data
     # APP1 marker is 0xE1
-    app1_marker = b"\xFF\xE1"
+    app1_marker = b"\xff\xe1"
     # Length includes 2 bytes for length field + identifier + data
     segment_length = 2 + len(xmp_identifier) + len(xmp_data)
     length_bytes = segment_length.to_bytes(2, byteorder="big")
@@ -270,7 +274,7 @@ def embed_xmp_in_jpeg(jpeg_bytes: bytes, xmp_xml: str) -> bytes:
     insert_pos = 2  # After SOI
 
     # Skip JFIF segment if present (APP0, marker 0xFFE0)
-    if len(jpeg_list) > 4 and jpeg_list[0:2] == b"\xFF\xD8":
+    if len(jpeg_list) > 4 and jpeg_list[0:2] == b"\xff\xd8":
         pos = 2
         while pos < len(jpeg_list) - 1:
             if jpeg_list[pos] == 0xFF:
@@ -331,4 +335,3 @@ def embed_exif_in_jpeg(
             print(f"WARNING: Failed to embed XMP metadata: {e}")
 
     return result_bytes
-

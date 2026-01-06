@@ -1,6 +1,6 @@
 # Webcam Capture Service
 
-A Python 3.13 background service for Raspberry Pi that captures images from an IP camera via RTSP/ffmpeg on a day/night schedule and uploads them to a remote API.
+A Python 3.13 background service for Raspberry Pi that captures images from an IP camera via RTSP/ffmpeg on a day/night schedule and uploads them via API or SFTP.
 
 **Aeronautical Compliance**: All timestamps and time calculations use UTC (Coordinated Universal Time) exclusively. No timezone conversions or daylight saving time adjustments are applied, ensuring compliance with aeronautical standards.
 
@@ -8,7 +8,7 @@ A Python 3.13 background service for Raspberry Pi that captures images from an I
 
 - **Scheduled capture**: Different intervals for day and night based on sunrise/sunset
 - **RTSP capture**: Reliable frame grabbing via ffmpeg with VIGI camera authentication support
-- **API upload**: PUT requests with retry logic and exponential backoff
+- **Multiple upload methods**: API (PUT requests with retry logic) or SFTP upload
 - **METAR overlay**: Optional weather information overlay from Aviation Weather API
 - **Icon support**: Add SVG icons to overlay (URL, local file, or inline)
 - **EXIF metadata**: Automatic embedding of camera info, GPS coordinates, METAR/TAF data, and license information in JPEG images
@@ -92,7 +92,7 @@ ls /etc/aero-pi-cam/config.yaml && echo "✅ Setup completed successfully!" || e
 
 ### Step 4: Configure the software
 
-Edit the configuration file with your camera and API settings:
+Edit the configuration file with your camera and upload settings:
 
 ```bash
 sudo nano /etc/aero-pi-cam/config.yaml
@@ -104,8 +104,17 @@ sudo nano /etc/aero-pi-cam/config.yaml
 - `camera.rtsp_password`: Your camera's password
 - `location.name`: Your location name (e.g., `LFAS`)
 - `location.latitude` and `location.longitude`: Your GPS coordinates
-- `api.url`: Your upload API address (leave empty to use test mode)
-- `api.key`: Your API key
+- `upload_method`: Choose `"API"` or `"SFTP"` for upload method
+- **For API upload** (`upload_method: "API"`):
+  - `api.url`: Your upload API address (leave empty to use test mode)
+  - `api.key`: Your API key
+- **For SFTP upload** (`upload_method: "SFTP"`):
+  - `sftp.host`: SFTP server hostname
+  - `sftp.port`: SFTP server port (usually 22)
+  - `sftp.user`: SFTP username
+  - `sftp.password`: SFTP password
+  - `sftp.remote_path`: Remote directory path for uploads
+  - `sftp.timeout_seconds`: Connection timeout
 
 Press `Ctrl+X`, then `Y`, then `Enter` to save and exit.
 
@@ -304,10 +313,11 @@ ffmpeg -rtsp_transport tcp -i 'rtsp://pi:password$@192.168.0.60:554/stream1' -fr
 Debug mode uses a local dummy API server for testing, eliminating the need for an external API during development.
 
 **How it works:**
-- When `DEBUG_MODE=true`, the service automatically starts a dummy API server on `localhost:8000`
+- When `DEBUG_MODE=true` and `upload_method: "API"`, the service automatically starts a dummy API server on `localhost:8000`
 - All image uploads go to the dummy server instead of the configured API
 - The dummy server saves images to `.debug/cam/{location}-{camera_name}.jpg` with static filenames
 - No direct file writes - all images go through the upload process (same as production)
+- **Note**: Debug mode only applies when using API upload method. SFTP uploads will use the configured SFTP server even in debug mode.
 
 **Enable debug mode:**
 
@@ -338,7 +348,7 @@ sudo systemctl restart aero-pi-cam
 - Filenames are sanitized (spaces → underscores, non-ASCII removed)
 
 **Testing without API:**
-You can also test without an API by leaving `api.url` unset in `config.yaml`. The dummy server will automatically be used.
+You can also test without an API by setting `upload_method: "API"` and leaving `api.url` unset in `config.yaml`. The dummy server will automatically be used.
 
 ---
 
@@ -355,9 +365,16 @@ See `config.example.yaml` for all options:
 | location | latitude/longitude | GPS coordinates for sun calculation |
 | schedule | day_interval_minutes | Capture interval during day |
 | schedule | night_interval_minutes | Capture interval during night |
-| api | url | Upload API endpoint |
-| api | key | Bearer token for authentication |
-| api | timeout_seconds | Request timeout |
+| upload_method | | Upload method: "API" or "SFTP" |
+| api | url | Upload API endpoint (required when upload_method is "API") |
+| api | key | Bearer token for authentication (required when upload_method is "API") |
+| api | timeout_seconds | Request timeout (required when upload_method is "API") |
+| sftp | host | SFTP server hostname (required when upload_method is "SFTP") |
+| sftp | port | SFTP server port (required when upload_method is "SFTP") |
+| sftp | user | SFTP username (required when upload_method is "SFTP") |
+| sftp | password | SFTP password (required when upload_method is "SFTP") |
+| sftp | remote_path | Remote directory path for uploads (required when upload_method is "SFTP") |
+| sftp | timeout_seconds | Connection timeout in seconds (required when upload_method is "SFTP") |
 | overlay | provider_logo | Path to logo file (PNG or SVG). Supports absolute paths, ~ expansion (e.g., `~/images/logo.png`), or relative paths. |
 | overlay | logo_size | Logo size in pixels |
 | overlay | font_path | Optional path to custom font file (e.g., `~/fonts/Poppins-Medium.ttf`). If not set, uses system font. |
@@ -558,7 +575,13 @@ python3 -c "import piexif; print(piexif.load(open('image.jpg', 'rb')))"
 
 ---
 
-## API Contract
+## Upload Methods
+
+The service supports two upload methods: **API** and **SFTP**. Configure the method using `upload_method` in `config.yaml`.
+
+### API Upload
+
+**Note**: API upload contract only applies when `upload_method: "API"`.
 
 The service uploads images using this format:
 
@@ -584,6 +607,17 @@ Expected response:
   "size_bytes": 245000
 }
 ```
+
+### SFTP Upload
+
+**Note**: SFTP upload applies when `upload_method: "SFTP"`.
+
+The service uploads images via SFTP to the configured remote server:
+- **Filename format**: `{location}-{camera_name}.jpg` (same as API, e.g., `LFAS-hangar_2.jpg`)
+- **Remote path**: Configured via `sftp.remote_path` (e.g., `/public_html/cam/`)
+- **Full path**: `{sftp.remote_path}/{filename}` (e.g., `/public_html/cam/LFAS-hangar_2.jpg`)
+- **Overwrite behavior**: Each upload overwrites the previous image with the same filename
+- **Directory creation**: Remote directory is created automatically if it doesn't exist
 
 ---
 

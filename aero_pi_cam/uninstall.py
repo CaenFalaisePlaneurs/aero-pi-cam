@@ -1,7 +1,6 @@
 """Uninstall helper script for aero-pi-cam."""
 
 import subprocess
-import sys
 from pathlib import Path
 
 
@@ -43,15 +42,16 @@ def reload_systemd() -> None:
 
 def find_pip_command() -> str:
     """Find the correct pip command to use for uninstall.
-    
+
     Returns:
         The pip command path (venv pip if in venv, or 'pip' for system-wide)
     """
     try:
         # Check if we're running from a venv
         import aero_pi_cam
+
         package_path = Path(aero_pi_cam.__file__).parent
-        
+
         # Check if package is in a venv (venv typically has 'site-packages' in path)
         if "site-packages" in str(package_path) or "dist-packages" in str(package_path):
             # Extract venv root from package path
@@ -65,15 +65,15 @@ def find_pip_command() -> str:
                         if venv_pip.exists():
                             return str(venv_pip)
                     break
-        
+
         # Check if we're in a venv via environment variable
         venv_python = Path.cwd() / "venv" / "bin" / "pip"
         if venv_python.exists():
             return str(venv_python)
-            
+
     except ImportError:
         pass
-    
+
     # Default to system pip
     return "pip"
 
@@ -96,7 +96,7 @@ def main() -> None:
 
     # Find the correct pip command
     pip_cmd = find_pip_command()
-    
+
     if pip_cmd != "pip":
         print(f"\nNow run: {pip_cmd} uninstall aero-pi-cam")
         print("The systemd service file will be removed automatically.")
@@ -108,4 +108,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

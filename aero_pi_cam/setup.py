@@ -80,7 +80,7 @@ def install_system_dependencies(missing: list[str]) -> bool:
 
 def is_docker_environment() -> bool:
     """Check if running in Docker container.
-    
+
     Returns:
         True if running in Docker, False otherwise
     """
@@ -103,7 +103,7 @@ def is_docker_environment() -> bool:
 
 def get_current_user() -> str:
     """Get the current username.
-    
+
     Returns:
         Username as string, defaults to 'pi' if cannot be determined
     """
@@ -189,13 +189,13 @@ def create_systemd_service() -> bool:
         print("Skipping systemd service setup (Docker environment detected)")
         print("Note: In Docker, the application runs directly, not via systemd")
         return True
-    
+
     service_name = "aero-pi-cam"
     service_file_dest = Path(f"/etc/systemd/system/{service_name}.service")
-    
+
     # Get current user (or default to 'pi' for Raspberry Pi)
     service_user = get_current_user()
-    
+
     # Try to find existing service file from various locations
     # Note: When installed via pip from git, the file is installed to /etc/systemd/system/
     # via data_files, but the source file may not be accessible. We can use the installed
@@ -209,17 +209,18 @@ def create_systemd_service() -> bool:
         # This is important when installing via pip from git
         service_file_dest,
     ]
-    
+
     service_file_source = None
     for location in possible_locations:
         if location.exists():
             service_file_source = location
             break
-    
+
     if service_file_source is None:
         # Try to find it using the package location (when installed via pip from git)
         try:
             import aero_pi_cam
+
             package_path = Path(aero_pi_cam.__file__).parent
             # When installed via pip, the file might be in various parent directories
             search_paths = [
@@ -239,7 +240,7 @@ def create_systemd_service() -> bool:
                         break
         except ImportError:
             pass
-    
+
     if service_file_source is None:
         # When installing from git via pip, the file is in the source distribution
         # but not accessible after installation. However, pip does install it to
@@ -253,7 +254,9 @@ def create_systemd_service() -> bool:
         print("1. Check if the file is already installed:")
         print(f"   sudo ls -la {service_file_dest}")
         print("2. If not, the file should be installed during pip install.")
-        print("   Try reinstalling: pip install --force-reinstall git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop")
+        print(
+            "   Try reinstalling: pip install --force-reinstall git+https://github.com/CaenFalaisePlaneurs/aero-pi-cam.git@develop"
+        )
         print("3. Then run setup again: sudo aero-pi-cam-setup")
         return False
 
@@ -311,7 +314,7 @@ def create_systemd_service() -> bool:
                 updated_lines.insert(service_idx + 1, f"ExecStart={webcam_executable}")
             else:
                 updated_lines.append(f"ExecStart={webcam_executable}")
-        
+
         if not user_found:
             # Add User if not found (insert after [Service] line)
             service_idx = -1
@@ -323,7 +326,7 @@ def create_systemd_service() -> bool:
                 updated_lines.insert(service_idx + 1, f"User={service_user}")
             else:
                 updated_lines.append(f"User={service_user}")
-        
+
         if not config_path_found:
             # Add CONFIG_PATH if not found (insert after [Service] line, before ExecStart)
             service_idx = -1
@@ -339,7 +342,9 @@ def create_systemd_service() -> bool:
                     if line.strip().startswith("ExecStart="):
                         insert_idx = i
                         break
-                updated_lines.insert(insert_idx, 'Environment="CONFIG_PATH=/etc/aero-pi-cam/config.yaml"')
+                updated_lines.insert(
+                    insert_idx, 'Environment="CONFIG_PATH=/etc/aero-pi-cam/config.yaml"'
+                )
             else:
                 updated_lines.append('Environment="CONFIG_PATH=/etc/aero-pi-cam/config.yaml"')
 
@@ -364,7 +369,7 @@ def create_systemd_service() -> bool:
 
 def get_config_example_content() -> str | None:
     """Get the content of config.example.yaml from the package or repository.
-    
+
     Returns:
         Config file content as string, or None if not found
     """
@@ -378,15 +383,16 @@ def get_config_example_content() -> str | None:
         # If installed as package, check parent directories
         Path(__file__).parent.parent.parent / "config.example.yaml",
     ]
-    
+
     # Check file system locations
     for location in possible_locations:
         if location.exists():
             return location.read_text()
-    
+
     # Try to find it using the package location (when installed via pip from git)
     try:
         import aero_pi_cam
+
         package_path = Path(aero_pi_cam.__file__).parent
         # When installed via pip, the file might be in various parent directories
         search_paths = [
@@ -394,7 +400,7 @@ def get_config_example_content() -> str | None:
             package_path.parent.parent,  # lib/python3.x
             package_path.parent.parent.parent,  # venv root or /usr
         ]
-        
+
         # Check installed location (data_files installs to usr/share/aero-pi-cam/)
         # For system installs: /usr/share/aero-pi-cam/
         # For venv installs: <venv>/usr/share/aero-pi-cam/
@@ -406,16 +412,18 @@ def get_config_example_content() -> str | None:
                         # Go up to find potential root (venv or /usr)
                         potential_root = Path(*package_path.parts[: i - 2])
                         # Check venv location
-                        venv_location = potential_root / "usr" / "share" / "aero-pi-cam" / "config.example.yaml"
+                        venv_location = (
+                            potential_root / "usr" / "share" / "aero-pi-cam" / "config.example.yaml"
+                        )
                         if venv_location.exists():
                             return venv_location.read_text()
                     break
-        
+
         # Check system-wide location
         system_location = Path("/usr/share/aero-pi-cam/config.example.yaml")
         if system_location.exists():
             return system_location.read_text()
-        
+
         # Also check if we can find it relative to the current working directory
         cwd = Path.cwd()
         if (cwd / "config.example.yaml").exists():
@@ -427,12 +435,12 @@ def get_config_example_content() -> str | None:
                     return candidate.read_text()
     except ImportError:
         pass
-    
+
     # Final check: system-wide installation location
     system_location = Path("/usr/share/aero-pi-cam/config.example.yaml")
     if system_location.exists():
         return system_location.read_text()
-    
+
     return None
 
 
@@ -451,7 +459,7 @@ def create_config_template() -> bool:
 
     # Get config example content from the actual file
     config_content = get_config_example_content()
-    
+
     if config_content is None:
         print("Error: Could not find config.example.yaml file.")
         print("Please ensure the package is properly installed.")
@@ -469,7 +477,7 @@ def create_config_template() -> bool:
 
         # Write config content from the actual config.example.yaml file
         config_file.write_text(config_content)
-        
+
         print(f"✓ Created configuration template: {config_file}")
         print(f"⚠ Please edit {config_file} before starting the service")
         return True
@@ -492,7 +500,7 @@ def enable_and_start_service() -> bool:
     if is_docker_environment():
         print("Skipping systemd service management (Docker environment detected)")
         return True
-    
+
     service_name = "aero-pi-cam"
 
     try:

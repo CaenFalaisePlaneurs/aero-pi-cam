@@ -1,3 +1,3 @@
-"""Webcam Capture Service for LFAS Aerodrome."""
+"""Webcam Capture Service for Aeronautical Webcams."""
 
 __version__ = "1.0.0"

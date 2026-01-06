@@ -31,19 +31,19 @@ def mock_config() -> Config:
     return Config(
         camera=CameraConfig(rtsp_url="rtsp://example.com/stream"),
         location=LocationConfig(
-            name="LFAS", latitude=48.9267952, longitude=-0.1477169, camera_heading="060° RWY 06"
+            name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
         api=ApiConfig(key="test-key", timeout_seconds=30),
         overlay=OverlayConfig(
-            provider_name="LFAS - caenfalaiseplaneurs.fr/cam",
+            provider_name="TEST - example.com/cam",
             provider_logo="images/logo-cgaf.png",
             camera_name="hangar 2",
         ),
-        metar=MetarConfig(icao_code="LFAS", enabled=False),
+        metar=MetarConfig(icao_code="TEST", enabled=False),
         metadata=MetadataConfig(
-            github_repo="https://github.com/CaenFalaisePlaneurs/aero-pi-cam",
-            webcam_url="https://caenfalaiseplaneurs.fr/cam",
+            github_repo="https://github.com/test/aero-pi-cam",
+            webcam_url="https://example.com/cam",
             license="CC BY-SA 4.0",
             license_url="https://creativecommons.org/licenses/by-sa/4.0/",
             license_mark="This work is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/",
@@ -107,7 +107,7 @@ def test_build_exif_dict_standard_tags(mock_config: Config) -> None:
 
     assert piexif.ImageIFD.Copyright in exif_dict["0th"]
     copyright_text = exif_dict["0th"][piexif.ImageIFD.Copyright]
-    assert "LFAS - caenfalaiseplaneurs.fr/cam" in copyright_text
+    assert "TEST - example.com/cam" in copyright_text
     assert "CC BY-SA 4.0" in copyright_text
 
     # Check GPS tags
@@ -116,6 +116,7 @@ def test_build_exif_dict_standard_tags(mock_config: Config) -> None:
     assert exif_dict["GPS"][piexif.GPSIFD.GPSLatitudeRef] == "N"
     assert piexif.GPSIFD.GPSLongitude in exif_dict["GPS"]
     assert piexif.GPSIFD.GPSLongitudeRef in exif_dict["GPS"]
+    # Longitude -0.1 is West
     assert exif_dict["GPS"][piexif.GPSIFD.GPSLongitudeRef] == "W"
 
 
@@ -125,11 +126,11 @@ def test_build_exif_dict_with_metar_taf(mock_config: Config) -> None:
 
     sunrise = datetime(2026, 1, 2, 7, 23, 0, tzinfo=UTC)
     sunset = datetime(2026, 1, 2, 17, 45, 0, tzinfo=UTC)
-    raw_metar = "LFAS 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
-    raw_taf = "LFAS 021200Z 0212/0312 25010KT 9999 OVC030"
+    raw_metar = "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
+    raw_taf = "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
 
     exif_dict = build_exif_dict(
-        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf, metar_icao="LFAS"
+        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf, metar_icao="TEST"
     )
 
     # Check UserComment contains structured JSON
@@ -143,15 +144,15 @@ def test_build_exif_dict_with_metar_taf(mock_config: Config) -> None:
 
     # Verify structured key-value pairs
     assert metadata["camera_name"] == "hangar 2"
-    assert metadata["provider_name"] == "LFAS - caenfalaiseplaneurs.fr/cam"
-    assert metadata["airfield_oaci"] == "LFAS"
-    assert metadata["metar"] == "LFAS 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
-    assert metadata["taf"] == "LFAS 021200Z 0212/0312 25010KT 9999 OVC030"
+    assert metadata["provider_name"] == "TEST - example.com/cam"
+    assert metadata["airfield_oaci"] == "TEST"
+    assert metadata["metar"] == "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
+    assert metadata["taf"] == "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
     assert metadata["sunrise"] == "2026-01-02T07:23:00Z"
     assert metadata["sunset"] == "2026-01-02T17:45:00Z"
     # Verify new fields
-    assert metadata["github_repo"] == "https://github.com/CaenFalaisePlaneurs/aero-pi-cam"
-    assert metadata["webcam_url"] == "https://caenfalaiseplaneurs.fr/cam"
+    assert metadata["github_repo"] == "https://github.com/test/aero-pi-cam"
+    assert metadata["webcam_url"] == "https://example.com/cam"
     assert metadata["license"] == "CC BY-SA 4.0"
     assert metadata["license_url"] == "https://creativecommons.org/licenses/by-sa/4.0/"
     assert "This work is licensed under CC BY-SA 4.0" in metadata["license_mark"]
@@ -225,7 +226,7 @@ def test_embed_exif_in_jpeg(mock_config: Config) -> None:
     assert exif_data["0th"][piexif.ImageIFD.ImageDescription].decode("utf-8") == "hangar 2"
     assert piexif.ImageIFD.Copyright in exif_data["0th"]
     copyright_text = exif_data["0th"][piexif.ImageIFD.Copyright].decode("utf-8")
-    assert "LFAS - caenfalaiseplaneurs.fr/cam" in copyright_text
+    assert "TEST - example.com/cam" in copyright_text
     assert "CC BY-SA 4.0" in copyright_text
     assert "GPS" in exif_data
     assert piexif.GPSIFD.GPSLatitude in exif_data["GPS"]
@@ -244,10 +245,10 @@ def test_embed_exif_verifies_custom_tags(mock_config: Config) -> None:
     # Build EXIF dictionary with all custom data
     sunrise = datetime(2026, 1, 2, 7, 23, 0, tzinfo=UTC)
     sunset = datetime(2026, 1, 2, 17, 45, 0, tzinfo=UTC)
-    raw_metar = "LFAS 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
-    raw_taf = "LFAS 021200Z 0212/0312 25010KT 9999 OVC030"
+    raw_metar = "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
+    raw_taf = "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
     exif_dict = build_exif_dict(
-        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf, metar_icao="LFAS"
+        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf, metar_icao="TEST"
     )
 
     # Embed EXIF
@@ -262,9 +263,9 @@ def test_embed_exif_verifies_custom_tags(mock_config: Config) -> None:
     comment_text = user_comment[1:-1].decode("utf-8")
     metadata = json.loads(comment_text)
 
-    assert metadata["airfield_oaci"] == "LFAS"
-    assert metadata["metar"] == "LFAS 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
-    assert metadata["taf"] == "LFAS 021200Z 0212/0312 25010KT 9999 OVC030"
+    assert metadata["airfield_oaci"] == "TEST"
+    assert metadata["metar"] == "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
+    assert metadata["taf"] == "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
     assert metadata["sunrise"] == "2026-01-02T07:23:00Z"
     assert metadata["sunset"] == "2026-01-02T17:45:00Z"
 
@@ -273,28 +274,34 @@ def test_build_xmp_xml(mock_config: Config) -> None:
     """Test building XMP XML with custom schema."""
     sunrise = datetime(2026, 1, 2, 7, 23, 0, tzinfo=UTC)
     sunset = datetime(2026, 1, 2, 17, 45, 0, tzinfo=UTC)
-    raw_metar = "LFAS 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
-    raw_taf = "LFAS 021200Z 0212/0312 25010KT 9999 OVC030"
+    raw_metar = "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
+    raw_taf = "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
 
     xmp_xml = build_xmp_xml(
-        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf, metar_icao="LFAS"
+        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf, metar_icao="TEST"
     )
 
     # Verify XMP structure
     assert '<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>' in xmp_xml
     assert 'xmlns:aero="http://aero-pi-cam.org/xmp/1.0/"' in xmp_xml
     assert "<aero:camera_name>hangar 2</aero:camera_name>" in xmp_xml
-    assert "<aero:provider_name>LFAS - caenfalaiseplaneurs.fr/cam</aero:provider_name>" in xmp_xml
-    assert "<aero:airfield_oaci>LFAS</aero:airfield_oaci>" in xmp_xml
-    assert "<aero:metar>LFAS 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012</aero:metar>" in xmp_xml
-    assert "<aero:taf>LFAS 021200Z 0212/0312 25010KT 9999 OVC030</aero:taf>" in xmp_xml
+    assert "<aero:provider_name>TEST - example.com/cam</aero:provider_name>" in xmp_xml
+    assert "<aero:airfield_oaci>TEST</aero:airfield_oaci>" in xmp_xml
+    assert "<aero:metar>TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012</aero:metar>" in xmp_xml
+    assert "<aero:taf>TEST 021200Z 0212/0312 25010KT 9999 OVC030</aero:taf>" in xmp_xml
     assert "<aero:sunrise>2026-01-02T07:23:00Z</aero:sunrise>" in xmp_xml
     assert "<aero:sunset>2026-01-02T17:45:00Z</aero:sunset>" in xmp_xml
     # Verify new fields
-    assert "<aero:github_repo>https://github.com/CaenFalaisePlaneurs/aero-pi-cam</aero:github_repo>" in xmp_xml
-    assert "<aero:webcam_url>https://caenfalaiseplaneurs.fr/cam</aero:webcam_url>" in xmp_xml
+    assert (
+        "<aero:github_repo>https://github.com/test/aero-pi-cam</aero:github_repo>"
+        in xmp_xml
+    )
+    assert "<aero:webcam_url>https://example.com/cam</aero:webcam_url>" in xmp_xml
     assert "<aero:license>CC BY-SA 4.0</aero:license>" in xmp_xml
-    assert "<aero:license_url>https://creativecommons.org/licenses/by-sa/4.0/</aero:license_url>" in xmp_xml
+    assert (
+        "<aero:license_url>https://creativecommons.org/licenses/by-sa/4.0/</aero:license_url>"
+        in xmp_xml
+    )
     assert "This work is licensed under CC BY-SA 4.0" in xmp_xml
     assert "</x:xmpmeta>" in xmp_xml
     assert '<?xpacket end="w"?>' in xmp_xml
@@ -309,7 +316,7 @@ def test_build_xmp_xml_without_optional_data(mock_config: Config) -> None:
 
     # Required fields should be present
     assert "<aero:camera_name>hangar 2</aero:camera_name>" in xmp_xml
-    assert "<aero:provider_name>LFAS - caenfalaiseplaneurs.fr/cam</aero:provider_name>" in xmp_xml
+    assert "<aero:provider_name>TEST - example.com/cam</aero:provider_name>" in xmp_xml
     assert "<aero:sunrise>2026-01-02T07:23:00Z</aero:sunrise>" in xmp_xml
     assert "<aero:sunset>2026-01-02T17:45:00Z</aero:sunset>" in xmp_xml
     # License and URL fields should always be present
@@ -381,15 +388,19 @@ def test_embed_exif_gps_coordinates(mock_config: Config) -> None:
 
     # Verify GPS coordinates are approximately correct
     lat = exif_data["GPS"][piexif.GPSIFD.GPSLatitude]
-    # Convert back to decimal: 48°55'36.46" ≈ 48.9268
-    lat_decimal = lat[0][0] / lat[0][1] + (lat[1][0] / lat[1][1]) / 60 + (lat[2][0] / lat[2][1]) / 3600
-    assert abs(lat_decimal - 48.9267952) < 0.01
+    # Convert back to decimal: should be approximately 48.9
+    lat_decimal = (
+        lat[0][0] / lat[0][1] + (lat[1][0] / lat[1][1]) / 60 + (lat[2][0] / lat[2][1]) / 3600
+    )
+    assert abs(lat_decimal - 48.9) < 0.01
 
     lon = exif_data["GPS"][piexif.GPSIFD.GPSLongitude]
-    # Convert back to decimal: 0°8'51.78" ≈ 0.1477 (but it's negative/West)
-    lon_decimal = lon[0][0] / lon[0][1] + (lon[1][0] / lon[1][1]) / 60 + (lon[2][0] / lon[2][1]) / 3600
+    # Convert back to decimal: should be approximately -0.1 (West)
+    lon_decimal = (
+        lon[0][0] / lon[0][1] + (lon[1][0] / lon[1][1]) / 60 + (lon[2][0] / lon[2][1]) / 3600
+    )
     # Since it's West, the decimal should be negative
-    assert abs(abs(lon_decimal) - 0.1477169) < 0.01
+    assert abs(abs(lon_decimal) - 0.1) < 0.01
 
 
 def test_embed_exif_handles_invalid_jpeg() -> None:
@@ -399,4 +410,3 @@ def test_embed_exif_handles_invalid_jpeg() -> None:
 
     with pytest.raises(Exception):
         embed_exif_in_jpeg(invalid_bytes, exif_dict)
-

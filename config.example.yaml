@@ -11,9 +11,9 @@ camera:
 
 location:
   # Camera location ICAO code
-  name: "LFAS"
-  latitude: 48.9267952
-  longitude: -0.1477169
+  name: "LFAS"  # Your airfield ICAO code (e.g., "LFAS")
+  latitude: 48.9  # Your camera latitude
+  longitude: -0.1  # Your camera longitude
   camera_heading: "060° RWY 06"  # Camera heading/direction (e.g., "060° RWY 06")
   # Note: All times are calculated and stored in UTC (aeronautical requirement)
 
@@ -21,18 +21,31 @@ schedule:
   day_interval_minutes: 5
   night_interval_minutes: 60
 
+# Upload method: "API" or "SFTP"
+upload_method: "API"  # Choose between "API" or "SFTP"
+
+# API upload configuration (required when upload_method is "API")
+api:
+  # API endpoint URL (optional - if not set, dummy server will be used in debug mode)
+  # url: "https://api.example.com/api/webcam/image"
+  key: "secret-api-key"
+  timeout_seconds: 30
+
+# SFTP upload configuration (required when upload_method is "SFTP")
+# sftp:
+#   host: "your-sftp-host-here"  # Required, no default
+#   port: 22  # Required, no default
+#   user: "your-user-name-here"  # Required, no default
+#   password: "your-password-here"  # Required, no default
+#   remote_path: "/remote/path"  # Required, no default (e.g., "/public_html/cam/" or "/home/username/www/")
+#   timeout_seconds: 30  # Required, no default
+
 # Debug mode (for development/testing only)
 # Enable via DEBUG_MODE environment variable (DEBUG_MODE=true)
 # When enabled, uses faster intervals in seconds instead of minutes
 debug:
   day_interval_seconds: 10   # 10 seconds during day
   night_interval_seconds: 30  # 30 seconds during night
-
-api:
-  # API endpoint URL (optional - if not set, dummy server will be used in debug mode)
-  # url: "https://api.example.com/api/webcam/image"
-  key: "secret-api-key"
-  timeout_seconds: 30
 
 # Overlay configuration
 overlay:

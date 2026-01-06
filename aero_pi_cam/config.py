@@ -2,9 +2,10 @@
 
 import os
 from pathlib import Path
+from typing import Literal
 
 import yaml
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class CameraConfig(BaseModel):
@@ -72,9 +73,22 @@ class DebugConfig(BaseModel):
 class ApiConfig(BaseModel):
     """API upload configuration."""
 
-    url: str | None = Field(None, description="API endpoint URL (optional, uses dummy server if not set)")
+    url: str | None = Field(
+        None, description="API endpoint URL (optional, uses dummy server if not set)"
+    )
     key: str = Field(..., min_length=1, description="API key for authentication")
     timeout_seconds: int = Field(..., ge=1, le=300, description="Request timeout in seconds")
+
+
+class SftpConfig(BaseModel):
+    """SFTP upload configuration."""
+
+    host: str = Field(..., min_length=1, description="SFTP server hostname")
+    port: int = Field(..., ge=1, le=65535, description="SFTP server port")
+    user: str = Field(..., min_length=1, description="SFTP username")
+    password: str = Field(..., min_length=1, description="SFTP password")
+    remote_path: str = Field(..., min_length=1, description="Remote directory path for uploads")
+    timeout_seconds: int = Field(..., ge=1, le=300, description="Connection timeout in seconds")
 
 
 class OverlayConfig(BaseModel):
@@ -99,7 +113,8 @@ class OverlayConfig(BaseModel):
     font_color: str = Field("white", min_length=1, description="Color for overlay text")
     font_size: int = Field(16, ge=1, description="Font size in pixels")
     font_path: str | None = Field(
-        None, description="Path to custom font file (e.g., ~/fonts/Poppins-Medium.ttf). If not set, uses system font."
+        None,
+        description="Path to custom font file (e.g., ~/fonts/Poppins-Medium.ttf). If not set, uses system font.",
     )
     sun_icon_size: int = Field(24, ge=1, description="Sunrise/sunset icon size in pixels")
     line_spacing: int = Field(
@@ -164,11 +179,26 @@ class Config(BaseModel):
     camera: CameraConfig
     location: LocationConfig
     schedule: ScheduleConfig
-    api: ApiConfig
+    upload_method: Literal["API", "SFTP"] = Field("API", description="Upload method to use")
+    api: ApiConfig | None = Field(
+        None, description="API upload configuration (required when upload_method is API)"
+    )
+    sftp: SftpConfig | None = Field(
+        None, description="SFTP upload configuration (required when upload_method is SFTP)"
+    )
     overlay: OverlayConfig
     metar: MetarConfig
     metadata: MetadataConfig
     debug: DebugConfig | None = Field(None, description="Optional debug configuration")
+
+    @model_validator(mode="after")
+    def validate_upload_config(self) -> "Config":
+        """Validate that the correct upload config is provided based on upload_method."""
+        if self.upload_method == "API" and self.api is None:
+            raise ValueError("api configuration is required when upload_method is 'API'")
+        if self.upload_method == "SFTP" and self.sftp is None:
+            raise ValueError("sftp configuration is required when upload_method is 'SFTP'")
+        return self
 
 
 def load_config(config_path: str | None = None) -> Config:
