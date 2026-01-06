@@ -19,6 +19,20 @@ Quick reference for AI-assisted development. The codebase itself is the primary 
 - Prefer `collections.abc.Callable` over `typing.Callable`
 - Use `dict[str, Any]` not `Dict[str, Any]`
 
+### Handling Third-Party Libraries Without Type Stubs
+
+When importing from third-party libraries that don't have type stubs (e.g., `apscheduler`), use inline type ignore comments:
+
+```python
+from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[import-untyped]
+from apscheduler.triggers.date import DateTrigger  # type: ignore[import-untyped]
+```
+
+- ✅ Use `# type: ignore[import-untyped]` on the import line
+- ✅ Be specific with the error code (`[import-untyped]`) rather than generic `# type: ignore`
+- ❌ Do NOT add global mypy overrides in `pyproject.toml` for this (inline comments are clearer)
+- ❌ Do NOT use `# type: ignore` without the specific error code
+
 ## UTC Time Handling (Critical)
 
 **All times MUST be UTC for aeronautical compliance:**
