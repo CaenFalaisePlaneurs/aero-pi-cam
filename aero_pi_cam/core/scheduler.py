@@ -30,7 +30,14 @@ def _configure_scheduler_logger() -> None:
     """Configure APScheduler logger to suppress misfire warnings."""
     apscheduler_logger = logging.getLogger("apscheduler")
     # Add filter to suppress misfire warnings
+    # Apply filter to logger and all its handlers
     apscheduler_logger.addFilter(MisfireWarningFilter())
+    for handler in apscheduler_logger.handlers:
+        handler.addFilter(MisfireWarningFilter())
+    # Also apply to root logger handlers (APScheduler may propagate)
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers:
+        handler.addFilter(MisfireWarningFilter())
 
 
 def get_next_transition_time(now: datetime, config: Config | None) -> datetime | None:
@@ -261,8 +268,10 @@ async def schedule_next_capture(
         # Determine which is sooner: transition time or interval-based time
         use_transition = False
         if next_transition_time is not None and next_transition_time < next_capture_time:
-            use_transition = True
-            next_capture_time = next_transition_time
+            # Only use transition if it's in the future (not a past time)
+            if next_transition_time > now:
+                use_transition = True
+                next_capture_time = next_transition_time
 
         # Update or create scheduler
         if scheduler is None:
