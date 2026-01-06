@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 
 class CameraConfig(BaseModel):
@@ -228,8 +228,56 @@ class Config(BaseModel):
         return self.upload.sftp
 
 
+def format_validation_errors(error: ValidationError) -> str:
+    """Format Pydantic validation errors into user-friendly messages.
+
+    Args:
+        error: Pydantic ValidationError instance
+
+    Returns:
+        Formatted error message string
+    """
+    lines = ["Configuration validation failed:"]
+    for err in error.errors():
+        field_path = " -> ".join(str(loc) for loc in err["loc"])
+        error_msg = err.get("msg", "")
+
+        # Format the error message
+        if field_path:
+            lines.append(f"  • {field_path}: {error_msg}")
+        else:
+            lines.append(f"  • {error_msg}")
+
+        # Add context if available
+        if "ctx" in err:
+            ctx = err["ctx"]
+            if "expected" in ctx:
+                lines.append(f"    Expected: {ctx['expected']}")
+            if "actual" in ctx:
+                lines.append(f"    Actual: {ctx['actual']}")
+
+    # Add helpful message pointing to documentation
+    lines.append("")
+    lines.append("For help configuring your config.yaml file:")
+    lines.append("  • See config.example.yaml for a complete example configuration")
+    lines.append("  • See README.md 'Configuration' section for detailed documentation")
+
+    return "\n".join(lines)
+
+
 def load_config(config_path: str | None = None) -> Config:
-    """Load and validate configuration from YAML file."""
+    """Load and validate configuration from YAML file.
+
+    Args:
+        config_path: Path to configuration file. If None, uses CONFIG_PATH env var or default.
+
+    Returns:
+        Validated Config instance
+
+    Raises:
+        FileNotFoundError: If config file does not exist
+        ValidationError: If config validation fails (formatted error message is printed)
+    """
     if config_path is None:
         config_path = os.getenv("CONFIG_PATH", "config.yaml")
 
@@ -237,11 +285,19 @@ def load_config(config_path: str | None = None) -> Config:
     if not path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
-    with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+    print("Validating configuration...")
 
-    config_obj = Config.model_validate(data)
-    return config_obj
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+        config_obj = Config.model_validate(data)
+        print("Configuration validated successfully")
+        return config_obj
+    except ValidationError as e:
+        error_msg = format_validation_errors(e)
+        print(error_msg)
+        raise
 
 
 def validate_config(config: dict) -> Config:

@@ -5,9 +5,15 @@ import asyncio
 import os
 import signal
 import sys
+import warnings
 from pathlib import Path
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler  # type: ignore[import-untyped]
+from pydantic import ValidationError
+
+# Suppress RuntimeWarning when running as python -m aero_pi_cam.core.main
+# This warning occurs because Python imports the package before executing the module
+warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*found in sys.modules.*")
 
 try:
     from .config import Config, load_config
@@ -114,6 +120,12 @@ async def run_service(config_path: str | None = None) -> None:
 
     try:
         config = load_config(config_path)
+    except ValidationError:
+        # ValidationError already printed formatted error message in load_config()
+        sys.exit(1)
+    except FileNotFoundError as e:
+        print(f"Failed to load config: {e}")
+        sys.exit(1)
     except Exception as e:
         print(f"Failed to load config: {e}")
         sys.exit(1)
@@ -212,7 +224,7 @@ async def run_service(config_path: str | None = None) -> None:
                 # Wait with timeout to allow periodic checks and signal handling
                 await asyncio.wait_for(_shutdown_event.wait(), timeout=0.5)
                 break
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Continue loop to check again (allows signals to be processed)
                 continue
     except asyncio.CancelledError:

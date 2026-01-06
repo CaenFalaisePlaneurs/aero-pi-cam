@@ -30,8 +30,8 @@ def _create_test_config(
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         upload=UploadConfig(
             method=upload_method,
-        api=api_config,
-        sftp=sftp_config,
+            api=api_config,
+            sftp=sftp_config,
         ),
         overlay=OverlayConfig(
             provider_name="Test",

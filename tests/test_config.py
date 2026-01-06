@@ -620,3 +620,139 @@ def test_load_config_default_path() -> None:
     finally:
         if original_env:
             os.environ["CONFIG_PATH"] = original_env
+
+
+def test_format_validation_errors() -> None:
+    """Test format_validation_errors helper function."""
+    from pydantic import ValidationError
+
+    from aero_pi_cam.core.config import format_validation_errors
+
+    # Create a ValidationError by trying to validate invalid data
+    try:
+        from aero_pi_cam.core.config import Config
+
+        Config.model_validate({"camera": {"rtsp_url": "invalid"}})
+    except ValidationError as e:
+        error_msg = format_validation_errors(e)
+        assert "Configuration validation failed:" in error_msg
+        assert "camera" in error_msg or "location" in error_msg
+
+
+def test_load_config_validation_messaging(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test that load_config prints validation messages."""
+    import tempfile
+    from pathlib import Path
+
+    import yaml
+
+    from aero_pi_cam.core.config import load_config
+
+    valid_config = {
+        "camera": {"rtsp_url": "rtsp://test:pass@192.168.0.1:554/stream1"},
+        "location": {
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
+        },
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com",
+                "key": "test-key",
+                "timeout_seconds": 30,
+            },
+        },
+        "overlay": {
+            "provider_name": "Test Provider",
+            "provider_logo": "assets/logo.svg",
+            "camera_name": "test camera",
+        },
+        "metar": {
+            "enabled": False,
+            "icao_code": "TEST",
+        },
+        "metadata": {
+            "github_repo": "https://github.com/test/repo",
+            "webcam_url": "https://example.com/cam",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "license_mark": "Test license mark",
+        },
+    }
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        yaml.dump(valid_config, f)
+        temp_path = f.name
+
+    try:
+        result = load_config(temp_path)
+        assert result is not None
+
+        captured = capsys.readouterr()
+        assert "Validating configuration..." in captured.out
+        assert "Configuration validated successfully" in captured.out
+    finally:
+        Path(temp_path).unlink()
+
+
+def test_load_config_validation_error_messaging(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test that load_config prints formatted validation errors."""
+    import tempfile
+    from pathlib import Path
+
+    import yaml
+
+    from aero_pi_cam.core.config import load_config
+
+    invalid_config = {
+        "camera": {"rtsp_url": "http://invalid"},  # Invalid RTSP URL
+        "location": {
+            "name": "TEST",
+            "latitude": 48.9,
+            "longitude": -0.1,
+            "camera_heading": "060° RWY 06",
+        },
+        "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com",
+                "key": "test-key",
+                "timeout_seconds": 30,
+            },
+        },
+        "overlay": {
+            "provider_name": "Test Provider",
+            "provider_logo": "assets/logo.svg",
+            "camera_name": "test camera",
+        },
+        "metar": {
+            "enabled": False,
+            "icao_code": "TEST",
+        },
+        "metadata": {
+            "github_repo": "https://github.com/test/repo",
+            "webcam_url": "https://example.com/cam",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "license_mark": "Test license mark",
+        },
+    }
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        yaml.dump(invalid_config, f)
+        temp_path = f.name
+
+    try:
+        with pytest.raises(Exception):  # Should raise ValidationError
+            load_config(temp_path)
+
+        captured = capsys.readouterr()
+        assert "Validating configuration..." in captured.out
+        assert "Configuration validation failed:" in captured.out
+        assert "rtsp_url" in captured.out or "RTSP" in captured.out
+    finally:
+        Path(temp_path).unlink()

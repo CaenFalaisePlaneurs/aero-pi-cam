@@ -15,7 +15,7 @@ def check_external_dependencies() -> None:
     # Check for cairo library (required for cairosvg/SVG icon support)
     # This is a system library, so we check if cairosvg can import properly
     try:
-        import cairosvg  # noqa: F401
+        import cairosvg  # type: ignore[import-untyped]  # noqa: F401
     except OSError as e:
         error_msg = str(e).lower()
         if "cairo" in error_msg or "libcairo" in error_msg or "no library called" in error_msg:

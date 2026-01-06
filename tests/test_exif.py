@@ -37,7 +37,7 @@ def mock_config() -> Config:
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
         upload=UploadConfig(
             method="API",
-        api=ApiConfig(key="test-key", timeout_seconds=30),
+            api=ApiConfig(key="test-key", timeout_seconds=30),
         ),
         overlay=OverlayConfig(
             provider_name="TEST - example.com/cam",
