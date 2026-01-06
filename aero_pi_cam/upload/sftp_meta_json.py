@@ -4,7 +4,7 @@ import json
 import os
 from datetime import UTC, datetime, timedelta
 
-from .config import Config
+from ..core.config import Config
 
 
 def generate_metadata_json(

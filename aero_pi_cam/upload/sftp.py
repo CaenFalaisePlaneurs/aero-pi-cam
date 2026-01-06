@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 
 import asyncssh
 
-from .config import Config, SftpConfig
+from ..core.config import Config, SftpConfig
 from .dummy_api import get_image_filename
-from .upload_sftp_meta_json import generate_metadata_json
+from .sftp_meta_json import generate_metadata_json
 
 if TYPE_CHECKING:
     from .upload import UploadResult

@@ -21,17 +21,16 @@ schedule:
   day_interval_seconds: 300  # 5 minutes
   night_interval_seconds: 3600  # 60 minutes
 
-# Upload method: "API" or "SFTP"
-upload_method: "API"  # Choose between "API" or "SFTP"
-
-# API upload configuration (required when upload_method is "API")
-api:
-  # API endpoint URL (optional - if not set, dummy server will be used in debug mode)
-  # url: "https://api.example.com/api/webcam/image"
-  key: "secret-api-key"
-  timeout_seconds: 30
-
-# SFTP upload configuration (required when upload_method is "SFTP")
+# Upload configuration
+upload:
+  method: "API"  # Choose between "API" or "SFTP"
+  # API upload configuration (required when method is "API")
+  api:
+    # API endpoint URL (optional - if not set, dummy server will be used in debug mode)
+    # url: "https://api.example.com/api/webcam/image"
+    key: "secret-api-key"
+    timeout_seconds: 30
+  # SFTP upload configuration (required when method is "SFTP")
 # sftp:
 #   host: "your-sftp-host-here"  # Required, no default
 #   port: 22  # Required, no default

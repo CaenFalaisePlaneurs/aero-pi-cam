@@ -9,7 +9,7 @@ from pathlib import Path
 import cairosvg
 from PIL import Image, ImageDraw, ImageFont
 
-from .config import Config
+from ..core.config import Config
 
 
 def _is_debug_mode() -> bool:
@@ -18,9 +18,9 @@ def _is_debug_mode() -> bool:
 
 
 # Hardcoded icon paths (relative to src/ directory - part of codebase)
-SUNRISE_ICON_PATH = "images/icons/sunrise.svg"
-SUNSET_ICON_PATH = "images/icons/sunset.svg"
-COMPASS_ICON_PATH = "images/icons/compass.svg"
+SUNRISE_ICON_PATH = "assets/icons/sunrise.svg"
+SUNSET_ICON_PATH = "assets/icons/sunset.svg"
+COMPASS_ICON_PATH = "assets/icons/compass.svg"
 
 
 def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Image.Image | None:
@@ -45,7 +45,7 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
             # Relative path - resolve relative to package or project root
             current_file = Path(__file__)
             if is_codebase_icon:
-                # Codebase icons are in aero_pi_cam/images/icons/ (package directory)
+                # Codebase icons are in aero_pi_cam/assets/icons/ (package directory)
                 package_dir = current_file.parent
                 icon_file = package_dir / icon_path
             else:
@@ -85,7 +85,9 @@ def load_icon(icon_path: str, size: int, is_codebase_icon: bool = False) -> Imag
         return None
 
 
-def load_poppins_font(size: int, font_path: str | None = None) -> ImageFont.ImageFont:
+def load_font(
+    size: int, font_path: str | None = None, is_codebase_font: bool = False
+) -> ImageFont.ImageFont:
     """Load font with fallback to system fonts.
 
     PIL's ImageFont.truetype() uses font size in points (1/72 inch).
@@ -305,8 +307,8 @@ def draw_overlay_on_image(
 
     # Load font using configured size and path
     font_size = config.overlay.font_size
-    font = load_poppins_font(font_size, config.overlay.font_path)
-    font_small = load_poppins_font(
+    font = load_font(font_size, config.overlay.font_path)
+    font_small = load_font(
         max(8, font_size - 2), config.overlay.font_path
     )  # Smaller font for METAR
 

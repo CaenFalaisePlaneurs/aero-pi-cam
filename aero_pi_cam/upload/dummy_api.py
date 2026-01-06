@@ -9,7 +9,7 @@ from typing import Annotated
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
 
-from .config import Config
+from ..core.config import Config
 
 app = FastAPI(title="Dummy Webcam Upload API", version="1.0.0")
 

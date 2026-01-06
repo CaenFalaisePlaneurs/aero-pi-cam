@@ -1,0 +1,1 @@
+"""Weather and sun calculations."""

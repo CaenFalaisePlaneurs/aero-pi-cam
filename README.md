@@ -75,7 +75,7 @@ This command will:
 **Important**: This command needs root privileges to write system files. Use `sudo` without `-u`:
 
 ```bash
-sudo /home/$(whoami)/aero-pi-cam-venv/bin/python -m aero_pi_cam.setup
+sudo /home/$(whoami)/aero-pi-cam-venv/bin/python -m aero_pi_cam.setup.setup
 ```
 
 You'll be asked for your password (for `sudo`). Type it and press Enter.
@@ -83,7 +83,7 @@ You'll be asked for your password (for `sudo`). Type it and press Enter.
 **Verify Step 3 completed successfully:**
 
 ```bash
-ls /etc/aero-pi-cam/config.yaml && echo "✅ Setup completed successfully!" || echo "❌ Setup failed. Try running: sudo /home/$(whoami)/aero-pi-cam-venv/bin/python -m aero_pi_cam.setup"
+ls /etc/aero-pi-cam/config.yaml && echo "✅ Setup completed successfully!" || echo "❌ Setup failed. Try running: sudo /home/$(whoami)/aero-pi-cam-venv/bin/python -m aero_pi_cam.setup.setup"
 ```
 
 **🎉 Congratulations! Step 3 complete. The system is configured and ready.**
@@ -104,17 +104,18 @@ sudo nano /etc/aero-pi-cam/config.yaml
 - `camera.rtsp_password`: Your camera's password
 - `location.name`: Your location name (e.g., `LFAS`)
 - `location.latitude` and `location.longitude`: Your GPS coordinates
-- `upload_method`: Choose `"API"` or `"SFTP"` for upload method
-- **For API upload** (`upload_method: "API"`):
-  - `api.url`: Your upload API address (leave empty to use test mode)
-  - `api.key`: Your API key
-- **For SFTP upload** (`upload_method: "SFTP"`):
-  - `sftp.host`: SFTP server hostname
-  - `sftp.port`: SFTP server port (usually 22)
-  - `sftp.user`: SFTP username
-  - `sftp.password`: SFTP password
-  - `sftp.remote_path`: Remote directory path for uploads
-  - `sftp.timeout_seconds`: Connection timeout
+- `upload.method`: Choose `"API"` or `"SFTP"` for upload method
+- **For API upload** (`upload.method: "API"`):
+  - `upload.api.url`: Your upload API address (leave empty to use test mode)
+  - `upload.api.key`: Your API key
+  - `upload.api.timeout_seconds`: Request timeout
+- **For SFTP upload** (`upload.method: "SFTP"`):
+  - `upload.sftp.host`: SFTP server hostname
+  - `upload.sftp.port`: SFTP server port (usually 22)
+  - `upload.sftp.user`: SFTP username
+  - `upload.sftp.password`: SFTP password
+  - `upload.sftp.remote_path`: Remote directory path for uploads
+  - `upload.sftp.timeout_seconds`: Connection timeout
 
 Press `Ctrl+X`, then `Y`, then `Enter` to save and exit.
 
@@ -263,7 +264,7 @@ sudo chown pi:pi /etc/aero-pi-cam/config.yaml
 
 Validate with:
 ```bash
-python3 -c "from aero_pi_cam.config import load_config; load_config('/etc/aero-pi-cam/config.yaml')"
+python3 -c "from aero_pi_cam.core.config import load_config; load_config('/etc/aero-pi-cam/config.yaml')"
 ```
 
 ### Python/dependency issues
@@ -313,7 +314,7 @@ ffmpeg -rtsp_transport tcp -i 'rtsp://pi:password$@192.168.0.60:554/stream1' -fr
 Debug mode uses a local dummy API server for testing, eliminating the need for an external API during development.
 
 **How it works:**
-- When `DEBUG_MODE=true` and `upload_method: "API"`, the service automatically starts a dummy API server on `localhost:8000`
+- When `DEBUG_MODE=true` and `upload.method: "API"`, the service automatically starts a dummy API server on `localhost:8000`
 - All image uploads go to the dummy server instead of the configured API
 - The dummy server saves images to `.debug/cam/{location}-{camera_name}.jpg` with static filenames
 - No direct file writes - all images go through the upload process (same as production)
@@ -348,7 +349,7 @@ sudo systemctl restart aero-pi-cam
 - Filenames are sanitized (spaces → underscores, non-ASCII removed)
 
 **Testing without API:**
-You can also test without an API by setting `upload_method: "API"` and leaving `api.url` unset in `config.yaml`. The dummy server will automatically be used.
+You can also test without an API by setting `upload.method: "API"` and leaving `upload.api.url` unset in `config.yaml`. The dummy server will automatically be used.
 
 ---
 
@@ -363,18 +364,18 @@ See `config.example.yaml` for all options:
 | camera | rtsp_password | RTSP password (optional, if not in URL - **VIGI cameras**: use unencoded, even with special characters like `$` or `&`) |
 | location | name | Location identifier |
 | location | latitude/longitude | GPS coordinates for sun calculation |
-| schedule | day_interval_minutes | Capture interval during day |
-| schedule | night_interval_minutes | Capture interval during night |
-| upload_method | | Upload method: "API" or "SFTP" |
-| api | url | Upload API endpoint (required when upload_method is "API") |
-| api | key | Bearer token for authentication (required when upload_method is "API") |
-| api | timeout_seconds | Request timeout (required when upload_method is "API") |
-| sftp | host | SFTP server hostname (required when upload_method is "SFTP") |
-| sftp | port | SFTP server port (required when upload_method is "SFTP") |
-| sftp | user | SFTP username (required when upload_method is "SFTP") |
-| sftp | password | SFTP password (required when upload_method is "SFTP") |
-| sftp | remote_path | Remote directory path for uploads (required when upload_method is "SFTP") |
-| sftp | timeout_seconds | Connection timeout in seconds (required when upload_method is "SFTP") |
+| schedule | day_interval_seconds | Capture interval during day (in seconds) |
+| schedule | night_interval_seconds | Capture interval during night (in seconds) |
+| upload | method | Upload method: "API" or "SFTP" |
+| upload.api | url | Upload API endpoint (required when upload.method is "API") |
+| upload.api | key | Bearer token for authentication (required when upload.method is "API") |
+| upload.api | timeout_seconds | Request timeout (required when upload.method is "API") |
+| upload.sftp | host | SFTP server hostname (required when upload.method is "SFTP") |
+| upload.sftp | port | SFTP server port (required when upload.method is "SFTP") |
+| upload.sftp | user | SFTP username (required when upload.method is "SFTP") |
+| upload.sftp | password | SFTP password (required when upload.method is "SFTP") |
+| upload.sftp | remote_path | Remote directory path for uploads (required when upload.method is "SFTP") |
+| upload.sftp | timeout_seconds | Connection timeout in seconds (required when upload.method is "SFTP") |
 | overlay | provider_logo | Path to logo file (PNG or SVG). Supports absolute paths, ~ expansion (e.g., `~/images/logo.png`), or relative paths. |
 | overlay | logo_size | Logo size in pixels |
 | overlay | font_path | Optional path to custom font file (e.g., `~/fonts/Poppins-Medium.ttf`). If not set, uses system font. |
@@ -510,18 +511,18 @@ You can override the configuration file path using:
 
 1. **Command-line argument** (highest priority):
 ```bash
-python -m src.main --config /path/to/custom-config.yaml
+python -m aero_pi_cam.core.main --config /path/to/custom-config.yaml
 ```
 
 Or short form:
 ```bash
-python -m src.main -c /path/to/custom-config.yaml
+python -m aero_pi_cam.core.main -c /path/to/custom-config.yaml
 ```
 
 2. **Environment variable**:
 ```bash
 export CONFIG_PATH=/path/to/custom-config.yaml
-python -m src.main
+python -m aero_pi_cam.core.main
 ```
 
 3. **Default**: `/etc/aero-pi-cam/config.yaml` (when running as systemd service) or `config.yaml` (when running manually from project directory)
@@ -577,11 +578,11 @@ python3 -c "import piexif; print(piexif.load(open('image.jpg', 'rb')))"
 
 ## Upload Methods
 
-The service supports two upload methods: **API** and **SFTP**. Configure the method using `upload_method` in `config.yaml`.
+The service supports two upload methods: **API** and **SFTP**. Configure the method using `upload.method` in `config.yaml`.
 
 ### API Upload
 
-**Note**: API upload contract only applies when `upload_method: "API"`.
+**Note**: API upload contract only applies when `upload.method: "API"`.
 
 The service uploads images using this format:
 
@@ -610,12 +611,12 @@ Expected response:
 
 ### SFTP Upload
 
-**Note**: SFTP upload applies when `upload_method: "SFTP"`.
+**Note**: SFTP upload applies when `upload.method: "SFTP"`.
 
 The service uploads images via SFTP to the configured remote server:
 - **Filename format**: `{location}-{camera_name}.jpg` (same as API, e.g., `LFAS-hangar_2.jpg`)
-- **Remote path**: Configured via `sftp.remote_path` (e.g., `/public_html/cam/`)
-- **Full path**: `{sftp.remote_path}/{filename}` (e.g., `/public_html/cam/LFAS-hangar_2.jpg`)
+- **Remote path**: Configured via `upload.sftp.remote_path` (e.g., `/public_html/cam/`)
+- **Full path**: `{upload.sftp.remote_path}/{filename}` (e.g., `/public_html/cam/LFAS-hangar_2.jpg`)
 - **Overwrite behavior**: Each upload overwrites the previous image with the same filename
 - **Directory creation**: Remote directory is created automatically if it doesn't exist
 
@@ -661,7 +662,7 @@ Step 1: Stop and disable the service (recommended)
 **Important**: This command needs root privileges. Use `sudo` without `-u`:
 
 ```bash
-sudo /home/$(whoami)/aero-pi-cam-venv/bin/python -m aero_pi_cam.uninstall
+sudo /home/$(whoami)/aero-pi-cam-venv/bin/python -m aero_pi_cam.setup.uninstall
 ```
 
 Or if you know your username (replace 'lfas' with your username):

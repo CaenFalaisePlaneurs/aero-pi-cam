@@ -97,6 +97,27 @@ class SftpConfig(BaseModel):
     )
 
 
+class UploadConfig(BaseModel):
+    """Upload configuration grouping method, API, and SFTP settings."""
+
+    method: Literal["API", "SFTP"] = Field("API", description="Upload method to use")
+    api: ApiConfig | None = Field(
+        None, description="API upload configuration (required when method is API)"
+    )
+    sftp: SftpConfig | None = Field(
+        None, description="SFTP upload configuration (required when method is SFTP)"
+    )
+
+    @model_validator(mode="after")
+    def validate_upload_config(self) -> "UploadConfig":
+        """Validate that the correct upload config is provided based on method."""
+        if self.method == "API" and self.api is None:
+            raise ValueError("api configuration is required when upload method is 'API'")
+        if self.method == "SFTP" and self.sftp is None:
+            raise ValueError("sftp configuration is required when upload method is 'SFTP'")
+        return self
+
+
 class OverlayConfig(BaseModel):
     """Overlay configuration for comprehensive image overlay.
 
@@ -185,26 +206,26 @@ class Config(BaseModel):
     camera: CameraConfig
     location: LocationConfig
     schedule: ScheduleConfig
-    upload_method: Literal["API", "SFTP"] = Field("API", description="Upload method to use")
-    api: ApiConfig | None = Field(
-        None, description="API upload configuration (required when upload_method is API)"
-    )
-    sftp: SftpConfig | None = Field(
-        None, description="SFTP upload configuration (required when upload_method is SFTP)"
-    )
+    upload: UploadConfig
     overlay: OverlayConfig
     metar: MetarConfig
     metadata: MetadataConfig
     debug: DebugConfig | None = Field(None, description="Optional debug configuration")
 
-    @model_validator(mode="after")
-    def validate_upload_config(self) -> "Config":
-        """Validate that the correct upload config is provided based on upload_method."""
-        if self.upload_method == "API" and self.api is None:
-            raise ValueError("api configuration is required when upload_method is 'API'")
-        if self.upload_method == "SFTP" and self.sftp is None:
-            raise ValueError("sftp configuration is required when upload_method is 'SFTP'")
-        return self
+    @property
+    def upload_method(self) -> Literal["API", "SFTP"]:
+        """Backward compatibility property for upload_method."""
+        return self.upload.method
+
+    @property
+    def api(self) -> ApiConfig | None:
+        """Backward compatibility property for api."""
+        return self.upload.api
+
+    @property
+    def sftp(self) -> SftpConfig | None:
+        """Backward compatibility property for sftp."""
+        return self.upload.sftp
 
 
 def load_config(config_path: str | None = None) -> Config:

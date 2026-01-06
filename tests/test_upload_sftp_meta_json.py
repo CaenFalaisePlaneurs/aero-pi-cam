@@ -4,14 +4,14 @@ import json
 import os
 from unittest.mock import patch
 
-from aero_pi_cam.upload_sftp_meta_json import generate_metadata_json
+from aero_pi_cam.upload.sftp_meta_json import generate_metadata_json
 
 from .conftest import _create_test_config
 
 
 def test_generate_metadata_json_day_mode() -> None:
     """Test JSON generation for day mode."""
-    from aero_pi_cam.config import SftpConfig
+    from aero_pi_cam.core.config import SftpConfig
 
     sftp_config = SftpConfig(
         host="test.example.com",
@@ -65,7 +65,7 @@ def test_generate_metadata_json_day_mode() -> None:
 
 def test_generate_metadata_json_night_mode() -> None:
     """Test JSON generation for night mode."""
-    from aero_pi_cam.config import SftpConfig
+    from aero_pi_cam.core.config import SftpConfig
 
     sftp_config = SftpConfig(
         host="test.example.com",
@@ -92,7 +92,7 @@ def test_generate_metadata_json_night_mode() -> None:
 
 def test_generate_metadata_json_debug_mode_day() -> None:
     """Test JSON generation with debug mode enabled (day)."""
-    from aero_pi_cam.config import SftpConfig
+    from aero_pi_cam.core.config import SftpConfig
 
     sftp_config = SftpConfig(
         host="test.example.com",
@@ -122,7 +122,7 @@ def test_generate_metadata_json_debug_mode_day() -> None:
 
 def test_generate_metadata_json_debug_mode_night() -> None:
     """Test JSON generation with debug mode enabled (night)."""
-    from aero_pi_cam.config import SftpConfig
+    from aero_pi_cam.core.config import SftpConfig
 
     sftp_config = SftpConfig(
         host="test.example.com",
@@ -152,7 +152,7 @@ def test_generate_metadata_json_debug_mode_night() -> None:
 
 def test_generate_metadata_json_with_debug_config() -> None:
     """Test JSON generation with debug config intervals."""
-    from aero_pi_cam.config import DebugConfig, SftpConfig
+    from aero_pi_cam.core.config import DebugConfig, SftpConfig
 
     sftp_config = SftpConfig(
         host="test.example.com",
@@ -182,7 +182,7 @@ def test_generate_metadata_json_with_debug_config() -> None:
 
 def test_generate_metadata_json_with_metar_enabled() -> None:
     """Test JSON generation with METAR enabled."""
-    from aero_pi_cam.config import MetarConfig, SftpConfig
+    from aero_pi_cam.core.config import MetarConfig, SftpConfig
 
     sftp_config = SftpConfig(
         host="test.example.com",
@@ -220,7 +220,7 @@ def test_generate_metadata_json_with_metar_enabled() -> None:
 
 def test_generate_metadata_json_with_empty_metar() -> None:
     """Test JSON generation with empty METAR/TAF."""
-    from aero_pi_cam.config import MetarConfig, SftpConfig
+    from aero_pi_cam.core.config import MetarConfig, SftpConfig
 
     sftp_config = SftpConfig(
         host="test.example.com",
@@ -255,7 +255,7 @@ def test_generate_metadata_json_with_empty_metar() -> None:
 
 def test_generate_metadata_json_timestamp_format() -> None:
     """Test that timestamps are in correct format."""
-    from aero_pi_cam.config import SftpConfig
+    from aero_pi_cam.core.config import SftpConfig
 
     sftp_config = SftpConfig(
         host="test.example.com",
@@ -296,7 +296,7 @@ def test_generate_metadata_json_timestamp_format() -> None:
 
 def test_generate_metadata_json_all_fields_present() -> None:
     """Test that all required fields are present in JSON."""
-    from aero_pi_cam.config import SftpConfig
+    from aero_pi_cam.core.config import SftpConfig
 
     sftp_config = SftpConfig(
         host="test.example.com",
@@ -354,7 +354,7 @@ def test_generate_metadata_json_all_fields_present() -> None:
 
 def test_generate_metadata_json_with_no_metar_path() -> None:
     """Test JSON generation with no_metar_path provided."""
-    from aero_pi_cam.config import SftpConfig
+    from aero_pi_cam.core.config import SftpConfig
 
     sftp_config = SftpConfig(
         host="test.example.com",

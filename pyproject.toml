@@ -24,15 +24,15 @@ dependencies = [
 ]
 
 [project.scripts]
-webcam = "aero_pi_cam.main:main"
-aero-pi-cam-setup = "aero_pi_cam.setup:main"
-aero-pi-cam-uninstall = "aero_pi_cam.uninstall:main"
+webcam = "aero_pi_cam.core.main:main"
+aero-pi-cam-setup = "aero_pi_cam.setup.setup:main"
+aero-pi-cam-uninstall = "aero_pi_cam.setup.uninstall:main"
 
 [tool.setuptools]
 packages = ["aero_pi_cam"]
 
 [tool.setuptools.package-data]
-aero_pi_cam = ["images/**/*"]
+aero_pi_cam = ["assets/**/*"]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
@@ -70,5 +70,8 @@ addopts = "-v --cov=aero_pi_cam --cov-report=term-missing"
 filterwarnings = [
     "ignore::DeprecationWarning:suncalc.*",
     "ignore::RuntimeWarning:suncalc.*",
+    # Ignore Pillow deprecation warning about getdata() - will be fixed when Pillow 14 is released
+    # The warning is: "Image.Image.getdata is deprecated and will be removed in Pillow 14"
+    "ignore:Image.Image.getdata is deprecated:DeprecationWarning",
 ]
 

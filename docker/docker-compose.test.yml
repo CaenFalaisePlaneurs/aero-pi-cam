@@ -3,8 +3,8 @@
 services:
   test-pip-install:
     build:
-      context: .
-      dockerfile: Dockerfile.test
+      context: ..
+      dockerfile: docker/Dockerfile.test
     container_name: aero-pi-cam-test
     # Run as root to test systemd service installation (though systemd won't work in Docker)
     user: root

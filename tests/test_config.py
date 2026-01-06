@@ -2,7 +2,7 @@
 
 import pytest
 
-from aero_pi_cam.config import validate_config
+from aero_pi_cam.core.config import validate_config
 
 
 def test_validate_correct_config() -> None:
@@ -16,10 +16,13 @@ def test_validate_correct_config() -> None:
             "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "metar": {
             "enabled": True,
@@ -27,7 +30,7 @@ def test_validate_correct_config() -> None:
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
         "metadata": {
@@ -56,10 +59,13 @@ def test_reject_invalid_rtsp_url() -> None:
             "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "metar": {
             "enabled": False,
@@ -67,7 +73,7 @@ def test_reject_invalid_rtsp_url() -> None:
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
         "metadata": {
@@ -93,10 +99,13 @@ def test_reject_invalid_latitude() -> None:
             "longitude": -0.1477169,
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "metar": {
             "enabled": False,
@@ -104,7 +113,7 @@ def test_reject_invalid_latitude() -> None:
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
     }
@@ -123,10 +132,13 @@ def test_reject_invalid_longitude() -> None:
             "longitude": 200,  # Invalid
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "metar": {
             "enabled": False,
@@ -134,7 +146,7 @@ def test_reject_invalid_longitude() -> None:
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
     }
@@ -165,7 +177,7 @@ def test_reject_invalid_schedule_interval() -> None:
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
     }
@@ -185,10 +197,13 @@ def test_reject_invalid_icao_code_length() -> None:
             "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "metar": {
             "enabled": False,
@@ -215,10 +230,13 @@ def test_overlay_shadow_config() -> None:
             "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "metar": {
             "enabled": False,
@@ -226,7 +244,7 @@ def test_overlay_shadow_config() -> None:
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
             "shadow_enabled": True,
             "shadow_offset_x": 3,
@@ -260,14 +278,17 @@ def test_uppercase_icao_code() -> None:
             "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
         "metar": {
@@ -298,10 +319,13 @@ def test_debug_config_optional() -> None:
             "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "metar": {
             "enabled": False,
@@ -309,7 +333,7 @@ def test_debug_config_optional() -> None:
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
         "metadata": {
@@ -336,10 +360,13 @@ def test_debug_config_valid() -> None:
             "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "metar": {
             "enabled": False,
@@ -347,7 +374,7 @@ def test_debug_config_valid() -> None:
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
         "debug": {
@@ -380,10 +407,13 @@ def test_debug_config_defaults() -> None:
             "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "metar": {
             "enabled": False,
@@ -391,7 +421,7 @@ def test_debug_config_defaults() -> None:
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
         "debug": {
@@ -424,10 +454,13 @@ def test_reject_invalid_debug_interval() -> None:
             "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com/api/webcam/image",
-            "key": "secret-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com/api/webcam/image",
+                "key": "secret-key",
+                "timeout_seconds": 30,
+            },
         },
         "metar": {
             "enabled": False,
@@ -435,7 +468,7 @@ def test_reject_invalid_debug_interval() -> None:
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
         "debug": {
@@ -455,7 +488,7 @@ def test_load_config_with_path() -> None:
 
     import yaml
 
-    from aero_pi_cam.config import load_config
+    from aero_pi_cam.core.config import load_config
 
     config_data = {
         "camera": {"rtsp_url": "rtsp://test:pass@192.168.0.1:554/stream1"},
@@ -466,14 +499,17 @@ def test_load_config_with_path() -> None:
             "camera_heading": "060° RWY 06",
         },
         "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
-        "api": {
-            "url": "https://api.example.com",
-            "key": "test-key",
-            "timeout_seconds": 30,
+        "upload": {
+            "method": "API",
+            "api": {
+                "url": "https://api.example.com",
+                "key": "test-key",
+                "timeout_seconds": 30,
+            },
         },
         "overlay": {
             "provider_name": "Test Provider",
-            "provider_logo": "images/logo.svg",
+            "provider_logo": "assets/logo.svg",
             "camera_name": "test camera",
         },
         "metar": {
@@ -503,7 +539,7 @@ def test_load_config_with_path() -> None:
 
 def test_load_config_file_not_found() -> None:
     """Test load_config raises FileNotFoundError for missing file."""
-    from aero_pi_cam.config import load_config
+    from aero_pi_cam.core.config import load_config
 
     with pytest.raises(FileNotFoundError):
         load_config("nonexistent_config.yaml")
@@ -512,22 +548,74 @@ def test_load_config_file_not_found() -> None:
 def test_load_config_default_path() -> None:
     """Test load_config uses CONFIG_PATH env var or default."""
     import os
+    import tempfile
+    from pathlib import Path
 
-    from aero_pi_cam.config import load_config
+    import yaml
+
+    from aero_pi_cam.core.config import load_config
 
     original_env = os.environ.get("CONFIG_PATH")
     try:
         if "CONFIG_PATH" in os.environ:
             del os.environ["CONFIG_PATH"]
-        # Test that it uses default path (config.yaml)
-        # If config.yaml exists, it will load successfully
-        # If it doesn't exist, it will raise FileNotFoundError
+
+        # Create a temporary valid config file for testing
+        valid_config = {
+            "camera": {"rtsp_url": "rtsp://test:pass@192.168.0.1:554/stream1"},
+            "location": {
+                "name": "TEST",
+                "latitude": 48.9,
+                "longitude": -0.1,
+                "camera_heading": "060° RWY 06",
+            },
+            "schedule": {"day_interval_seconds": 300, "night_interval_seconds": 3600},
+            "upload": {
+                "method": "API",
+                "api": {
+                    "url": "https://api.example.com",
+                    "key": "test-key",
+                    "timeout_seconds": 30,
+                },
+            },
+            "overlay": {
+                "provider_name": "Test Provider",
+                "provider_logo": "assets/logo.svg",
+                "camera_name": "test camera",
+            },
+            "metar": {
+                "enabled": False,
+                "icao_code": "TEST",
+            },
+            "metadata": {
+                "github_repo": "https://github.com/test/repo",
+                "webcam_url": "https://example.com/cam",
+                "license": "CC BY-SA 4.0",
+                "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+                "license_mark": "Test license mark",
+            },
+        }
+
+        # Test with explicit path (doesn't depend on config.yaml existing)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(valid_config, f)
+            temp_path = f.name
+
+        try:
+            result = load_config(temp_path)
+            assert result is not None
+            assert result.camera.rtsp_url == valid_config["camera"]["rtsp_url"]
+        finally:
+            Path(temp_path).unlink()
+
+        # Test default path behavior - if config.yaml exists, it should load
+        # If it doesn't exist, it should raise FileNotFoundError
         try:
             result = load_config()
             # If we get here, config.yaml exists and was loaded
             assert result is not None
-        except FileNotFoundError:
-            # This is also valid - config.yaml doesn't exist
+        except (FileNotFoundError, ValueError):
+            # Both are valid - config.yaml doesn't exist or has invalid config
             pass
     finally:
         if original_env:

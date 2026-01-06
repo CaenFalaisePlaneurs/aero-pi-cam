@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock
 
-from aero_pi_cam.config import (
+from aero_pi_cam.core.config import (
     ApiConfig,
     CameraConfig,
     Config,
@@ -12,6 +12,7 @@ from aero_pi_cam.config import (
     OverlayConfig,
     ScheduleConfig,
     SftpConfig,
+    UploadConfig,
 )
 
 
@@ -27,9 +28,11 @@ def _create_test_config(
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
-        upload_method=upload_method,
+        upload=UploadConfig(
+            method=upload_method,
         api=api_config,
         sftp=sftp_config,
+        ),
         overlay=OverlayConfig(
             provider_name="Test",
             provider_logo="test.svg",

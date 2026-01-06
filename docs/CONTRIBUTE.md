@@ -58,24 +58,26 @@ sudo apt install libcairo2-dev ffmpeg
 ### Development Workflow
 
 ```bash
-# Activate virtual environment
+# Activate virtual environment (REQUIRED - all commands must run in venv)
 source venv/bin/activate
 
 # Install dev dependencies
 pip install -r requirements-dev.txt
 
 # Run tests
-pytest
+pytest tests/
 
 # Lint
-ruff check src tests
+ruff check aero_pi_cam tests
 
 # Format
-black src tests
+black aero_pi_cam tests
 
 # Type check
-mypy src
+mypy aero_pi_cam
 ```
+
+**Note**: Warning filters are configured in `pyproject.toml` under `[tool.pytest.ini_options]` → `filterwarnings`. This suppresses known deprecation warnings from third-party libraries (e.g., Pillow, suncalc) that don't affect functionality. See [pytest warning documentation](https://docs.pytest.org/en/stable/how-to/capture-warnings.html) for details.
 
 ### Running the App Manually
 
@@ -92,7 +94,7 @@ export CONFIG_PATH=config.yaml
 export DEBUG_MODE=true
 
 # Run the app
-python -m aero_pi_cam.main
+python -m aero_pi_cam.core.main
 ```
 
 The app will:
@@ -110,16 +112,17 @@ To stop the app, press `Ctrl+C` (handles SIGINT gracefully).
 
 Docker is available for **development and testing only** - it is not intended for production use. For production deployment, use the systemd service on Raspberry Pi.
 
-The Docker setup allows you to test the service in an isolated environment that mirrors the Raspberry Pi configuration. See [DOCKER.md](../DOCKER.md) for complete documentation.
+The Docker setup allows you to test the service in an isolated environment that mirrors the Raspberry Pi configuration. See [DOCKER.md](DOCKER.md) for complete documentation.
 
 **Quick start:**
 
 ```bash
-# Create config file first
+# Create config file first (from project root)
 cp config.example.yaml config.yaml
 # Edit config.yaml with your settings
 
-# Build and run with Docker Compose
+# Build and run with Docker Compose (from project root)
+cd docker
 docker-compose up -d
 
 # View logs
@@ -135,7 +138,7 @@ docker-compose down
 - Easy configuration via mounted `config.yaml`
 - Dummy API server for debug mode and testing (no external API needed)
 
-For detailed Docker usage, troubleshooting, and advanced options, see [DOCKER.md](../DOCKER.md).
+For detailed Docker usage, troubleshooting, and advanced options, see [DOCKER.md](DOCKER.md).
 
 ## Aeronautical Requirements
 

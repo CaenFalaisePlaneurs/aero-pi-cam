@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 
 from suncalc import get_times
 
-from .config import LocationConfig
+from ..core.config import LocationConfig
 
 
 def get_sun_times(date: datetime, location: LocationConfig) -> dict[str, datetime]:

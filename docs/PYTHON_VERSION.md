@@ -78,7 +78,7 @@ pip install -r requirements.txt
 pytest
 
 # Run the application
-python3 -m src.main
+python3 -m aero_pi_cam.core.main
 ```
 
 ## Troubleshooting

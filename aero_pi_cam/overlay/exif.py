@@ -12,7 +12,7 @@ from io import BytesIO
 import piexif
 from PIL import Image
 
-from .config import Config
+from ..core.config import Config
 
 
 def convert_gps_coordinates(latitude: float, longitude: float) -> dict:

@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import asyncssh
 import pytest
 
-from aero_pi_cam.config import SftpConfig
-from aero_pi_cam.upload import SftpUploader, upload_image
+from aero_pi_cam.core.config import SftpConfig
+from aero_pi_cam.upload.upload import SftpUploader, upload_image
 
 from .conftest import MockFileContextManager, _create_test_config
 

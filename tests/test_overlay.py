@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from aero_pi_cam.config import (
+from aero_pi_cam.core.config import (
     ApiConfig,
     CameraConfig,
     Config,
@@ -16,13 +16,14 @@ from aero_pi_cam.config import (
     MetarConfig,
     OverlayConfig,
     ScheduleConfig,
+    UploadConfig,
 )
-from aero_pi_cam.overlay import (
+from aero_pi_cam.overlay.overlay import (
     add_comprehensive_overlay,
     draw_overlay_on_image,
     draw_text_with_shadow,
+    load_font,
     load_icon,
-    load_poppins_font,
     parse_color,
     paste_image_with_shadow,
 )
@@ -37,10 +38,13 @@ def mock_config() -> Config:
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -96,19 +100,19 @@ def test_parse_color_unknown_defaults_to_white() -> None:
     assert parse_color("unknown") == (255, 255, 255)
 
 
-def test_load_poppins_font_with_font_file(mock_config) -> None:
+def test_load_font_with_font_file(mock_config) -> None:
     """Test loading Poppins font when font file exists."""
     # This will use the actual font if it exists, or fallback to default
-    font = load_poppins_font(16)
+    font = load_font(16)
     assert font is not None
     # FreeTypeFont is a subclass, so check for ImageFont base class or FreeTypeFont
     assert hasattr(font, "getsize") or hasattr(font, "getbbox")
 
 
-def test_load_poppins_font_fallback() -> None:
-    """Test loading Poppins font falls back to default when font missing."""
-    with patch("aero_pi_cam.overlay.Path.exists", return_value=False):
-        font = load_poppins_font(16)
+def test_load_font_fallback() -> None:
+    """Test loading font falls back to default when font missing."""
+    with patch("aero_pi_cam.overlay.overlay.Path.exists", return_value=False):
+        font = load_font(16)
         assert font is not None
         # FreeTypeFont is a subclass, so check for ImageFont base class or FreeTypeFont
         assert hasattr(font, "getsize") or hasattr(font, "getbbox")
@@ -127,10 +131,10 @@ def test_load_poppins_font_exception() -> None:
         return original_truetype(*args, **kwargs)
 
     with (
-        patch("aero_pi_cam.overlay.Path.exists", return_value=True),
-        patch("aero_pi_cam.overlay.ImageFont.truetype", side_effect=mock_truetype),
+        patch("aero_pi_cam.overlay.overlay.Path.exists", return_value=True),
+        patch("aero_pi_cam.overlay.overlay.ImageFont.truetype", side_effect=mock_truetype),
     ):
-        font = load_poppins_font(16)
+        font = load_font(16)
         assert font is not None
         # Should fallback to default
         assert hasattr(font, "getsize") or hasattr(font, "getbbox")
@@ -139,7 +143,7 @@ def test_load_poppins_font_exception() -> None:
 def test_load_icon_codebase_icon() -> None:
     """Test loading codebase icon."""
     # Test with actual sunrise icon if it exists
-    icon = load_icon("images/icons/sunrise.svg", 24, is_codebase_icon=True)
+    icon = load_icon("assets/icons/sunrise.svg", 24, is_codebase_icon=True)
     # Should return None if file doesn't exist, or Image if it does
     assert icon is None or isinstance(icon, Image.Image)
 
@@ -158,7 +162,7 @@ def test_load_icon_absolute_path() -> None:
 
 def test_load_icon_exception_handling() -> None:
     """Test load_icon handles exceptions gracefully."""
-    with patch("aero_pi_cam.overlay.cairosvg.svg2png", side_effect=Exception("Test error")):
+    with patch("aero_pi_cam.overlay.overlay.cairosvg.svg2png", side_effect=Exception("Test error")):
         icon = load_icon("test.svg", 24, is_codebase_icon=False)
         assert icon is None
 
@@ -255,10 +259,13 @@ def test_draw_overlay_on_image_with_metar(mock_config) -> None:
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -305,10 +312,13 @@ def test_draw_overlay_on_image_with_taf(mock_config) -> None:
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -351,7 +361,7 @@ def test_draw_overlay_on_image_with_logo(mock_config) -> None:
 
     # Create a simple test logo
     test_logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
-    with patch("aero_pi_cam.overlay.load_icon", return_value=test_logo):
+    with patch("aero_pi_cam.overlay.overlay.load_icon", return_value=test_logo):
         draw_overlay_on_image(img, mock_config, capture_time, sunrise_time, sunset_time, None, None)
 
     # Verify overlay was drawn
@@ -406,10 +416,13 @@ def test_draw_overlay_shadow_disabled() -> None:
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -448,10 +461,13 @@ def test_draw_overlay_text_wrapping() -> None:
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -492,10 +508,13 @@ def test_draw_overlay_taf_with_indentation() -> None:
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -536,10 +555,13 @@ def test_draw_overlay_logo_exception() -> None:
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -585,10 +607,13 @@ def test_draw_overlay_logo_paste_exception() -> None:
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,

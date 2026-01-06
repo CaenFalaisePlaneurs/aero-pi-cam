@@ -7,7 +7,7 @@ import piexif
 import pytest
 from PIL import Image
 
-from aero_pi_cam.config import (
+from aero_pi_cam.core.config import (
     ApiConfig,
     CameraConfig,
     Config,
@@ -16,8 +16,9 @@ from aero_pi_cam.config import (
     MetarConfig,
     OverlayConfig,
     ScheduleConfig,
+    UploadConfig,
 )
-from aero_pi_cam.exif import (
+from aero_pi_cam.overlay.exif import (
     build_exif_dict,
     build_xmp_xml,
     convert_gps_coordinates,
@@ -34,10 +35,13 @@ def mock_config() -> Config:
             name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
         ),
         schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
+        upload=UploadConfig(
+            method="API",
         api=ApiConfig(key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="TEST - example.com/cam",
-            provider_logo="images/logo-cgaf.png",
+            provider_logo="assets/logo-cgaf.png",
             camera_name="hangar 2",
         ),
         metar=MetarConfig(icao_code="TEST", enabled=False),

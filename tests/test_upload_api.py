@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from aero_pi_cam.config import ApiConfig
-from aero_pi_cam.upload import ApiUploader, upload_image
+from aero_pi_cam.core.config import ApiConfig
+from aero_pi_cam.upload.upload import ApiUploader, upload_image
 
 from .conftest import _create_test_config
 

@@ -4,8 +4,8 @@
 services:
   aero-pi-cam:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: aero-pi-cam
     restart: unless-stopped
     
@@ -17,12 +17,12 @@ services:
       - DEBUG_MODE=${DEBUG_MODE:-false}  # Set to 'true' to use dummy API server (saves images to .debug/cam/)
     
     # Mount config file for easy editing (read-only in container)
-    # IMPORTANT: Create config.yaml locally first: cp config.example.yaml config.yaml
+    # IMPORTANT: Create config.yaml at project root first: cp config.example.yaml config.yaml
     # If config.yaml doesn't exist, Docker will create a directory (not a file) and the app will fail
     volumes:
-      - ./config.yaml:/opt/webcam-cfp/config.yaml:ro
-      - ./.cursor:/opt/webcam-cfp/.cursor:rw  # Mount debug log directory
-      - ./.debug:/opt/webcam-cfp/.debug:rw  # Mount debug folder (dummy API saves images to .debug/cam/ in debug mode)
+      - ../config.yaml:/opt/webcam-cfp/config.yaml:ro
+      - ../.cursor:/opt/webcam-cfp/.cursor:rw  # Mount debug log directory
+      - ../.debug:/opt/webcam-cfp/.debug:rw  # Mount debug folder (dummy API saves images to .debug/cam/ in debug mode)
       # Mount source code for development (optional)
       # - ./src:/opt/webcam-cfp/src:ro
     
@@ -54,7 +54,7 @@ services:
     
     # Health check (optional - uncomment if needed)
     # healthcheck:
-    #   test: ["CMD", "venv/bin/python", "-c", "from src.config import load_config; load_config()"]
+    #   test: ["CMD", "venv/bin/python", "-c", "from aero_pi_cam.core.config import load_config; load_config()"]
     #   interval: 30s
     #   timeout: 10s
     #   retries: 3

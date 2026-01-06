@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import httpx
 import uvicorn
 
-from .config import ApiConfig, Config
+from ..core.config import ApiConfig, Config
 from .dummy_api import app, set_config
 
 if TYPE_CHECKING:

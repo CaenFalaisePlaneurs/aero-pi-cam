@@ -39,7 +39,7 @@ RUN if [ ! -f config.yaml ]; then \
     fi
 
 # Set permissions
-RUN chmod +x install.sh uninstall.sh setup-venv.sh || true
+RUN chmod +x scripts/install.sh scripts/uninstall.sh scripts/setup-venv.sh || true
 
 # Expose any ports if needed (none for this service, but kept for future)
 # EXPOSE 8080
@@ -47,8 +47,8 @@ RUN chmod +x install.sh uninstall.sh setup-venv.sh || true
 # Health check (optional - checks if Python can import the modules)
 # Disabled by default - uncomment if needed
 # HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-#     CMD venv/bin/python -c "from src.config import load_config; load_config()" || exit 1
+#     CMD venv/bin/python -c "from aero_pi_cam.core.config import load_config; load_config()" || exit 1
 
 # Default command - run the application directly (not via systemd)
-CMD ["venv/bin/python", "-m", "aero_pi_cam.main"]
+CMD ["venv/bin/python", "-m", "aero_pi_cam.core.main"]
 

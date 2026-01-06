@@ -16,6 +16,7 @@ The test verifies that:
 ### Option 1: Using Docker Compose (Recommended)
 
 ```bash
+cd docker
 docker-compose -f docker-compose.test.yml build
 docker-compose -f docker-compose.test.yml run --rm test-pip-install
 ```
@@ -23,7 +24,7 @@ docker-compose -f docker-compose.test.yml run --rm test-pip-install
 ### Option 2: Using Docker Directly
 
 ```bash
-docker build -f Dockerfile.test -t aero-pi-cam-test .
+docker build -f docker/Dockerfile.test -t aero-pi-cam-test .
 docker run --rm aero-pi-cam-test
 ```
 

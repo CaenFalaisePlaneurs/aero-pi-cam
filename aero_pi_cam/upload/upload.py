@@ -3,9 +3,9 @@
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from .config import Config
-from .upload_api import ApiUploader
-from .upload_sftp import SftpUploader
+from ..core.config import Config
+from .api import ApiUploader
+from .sftp import SftpUploader
 
 # Re-export for backward compatibility
 __all__ = [
@@ -64,16 +64,16 @@ def create_uploader(config: Config) -> UploadInterface:
     Raises:
         ValueError: If upload_method is not supported
     """
-    if config.upload_method == "API":
-        if config.api is None:
+    if config.upload.method == "API":
+        if config.upload.api is None:
             raise ValueError("api configuration is required when upload_method is 'API'")
-        return ApiUploader(config.api)
-    elif config.upload_method == "SFTP":
-        if config.sftp is None:
+        return ApiUploader(config.upload.api)
+    elif config.upload.method == "SFTP":
+        if config.upload.sftp is None:
             raise ValueError("sftp configuration is required when upload_method is 'SFTP'")
-        return SftpUploader(config.sftp)
+        return SftpUploader(config.upload.sftp)
     else:
-        raise ValueError(f"Unknown upload method: {config.upload_method}")
+        raise ValueError(f"Unknown upload method: {config.upload.method}")
 
 
 async def upload_image(

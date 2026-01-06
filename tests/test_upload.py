@@ -2,8 +2,8 @@
 
 import pytest
 
-from aero_pi_cam.config import ApiConfig, Config, SftpConfig
-from aero_pi_cam.upload import ApiUploader, SftpUploader, create_uploader
+from aero_pi_cam.core.config import ApiConfig, Config, SftpConfig
+from aero_pi_cam.upload.upload import ApiUploader, SftpUploader, create_uploader
 
 from .conftest import _create_test_config
 
@@ -42,6 +42,8 @@ def test_create_uploader_sftp() -> None:
 
 def test_create_uploader_invalid_method() -> None:
     """Test factory raises error for invalid upload method."""
+    from aero_pi_cam.core.config import UploadConfig
+
     api_config = ApiConfig(
         url="https://api.example.com/api/webcam/image",
         key="test-api-key",
@@ -50,7 +52,9 @@ def test_create_uploader_invalid_method() -> None:
     config = _create_test_config(upload_method="API", api_config=api_config)
     # Use model_construct to bypass validation and set invalid upload_method
     config_dict = config.model_dump()
-    config_dict["upload_method"] = "INVALID"  # type: ignore[assignment]
+    # Create invalid UploadConfig with invalid method
+    invalid_upload = UploadConfig.model_construct(method="INVALID", api=None, sftp=None)  # type: ignore[arg-type]
+    config_dict["upload"] = invalid_upload
     config = Config.model_construct(**config_dict)
 
     with pytest.raises(ValueError, match="Unknown upload method"):
@@ -59,6 +63,8 @@ def test_create_uploader_invalid_method() -> None:
 
 def test_create_uploader_missing_api_config() -> None:
     """Test factory raises error when API config is missing."""
+    from aero_pi_cam.core.config import UploadConfig
+
     # Create config with API method but no api config
     # Use model_construct to bypass validation
     base_config = _create_test_config(
@@ -70,7 +76,9 @@ def test_create_uploader_missing_api_config() -> None:
         ),
     )
     config_dict = base_config.model_dump()
-    config_dict["api"] = None
+    # Create UploadConfig with API method but None api config
+    invalid_upload = UploadConfig.model_construct(method="API", api=None, sftp=None)
+    config_dict["upload"] = invalid_upload
     config = Config.model_construct(**config_dict)
 
     with pytest.raises(ValueError, match="api configuration is required"):
@@ -79,6 +87,8 @@ def test_create_uploader_missing_api_config() -> None:
 
 def test_create_uploader_missing_sftp_config() -> None:
     """Test factory raises error when SFTP config is missing."""
+    from aero_pi_cam.core.config import UploadConfig
+
     # Create config with SFTP method but no sftp config
     # Use model_construct to bypass validation
     base_config = _create_test_config(
@@ -93,7 +103,9 @@ def test_create_uploader_missing_sftp_config() -> None:
         ),
     )
     config_dict = base_config.model_dump()
-    config_dict["sftp"] = None
+    # Create UploadConfig with SFTP method but None sftp config
+    invalid_upload = UploadConfig.model_construct(method="SFTP", api=None, sftp=None)
+    config_dict["upload"] = invalid_upload
     config = Config.model_construct(**config_dict)
 
     with pytest.raises(ValueError, match="sftp configuration is required"):
