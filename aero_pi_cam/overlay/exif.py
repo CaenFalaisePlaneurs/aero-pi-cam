@@ -8,8 +8,9 @@ Also embeds XMP metadata with custom schema.
 import json
 from datetime import datetime
 from io import BytesIO
+from urllib.parse import urlparse
 
-import piexif
+import piexif  # type: ignore[import-untyped]
 from PIL import Image
 
 from ..core.config import Config
@@ -126,6 +127,9 @@ def build_exif_dict(
     metadata_dict["airfield_icao"] = config.location.name
 
     # Optional aeronautical data
+    if config.metar.enabled:
+        metadata_dict["metar_source"] = urlparse(config.metar.api_url).netloc
+
     if raw_metar:
         metadata_dict["metar"] = raw_metar
 
@@ -202,6 +206,12 @@ def build_xmp_xml(
         f"<{namespace_prefix}:camera_heading>{escape_xml(config.location.camera_heading)}</{namespace_prefix}:camera_heading>",
         f"<{namespace_prefix}:airfield_icao>{escape_xml(config.location.name)}</{namespace_prefix}:airfield_icao>",
     ]
+
+    if config.metar.enabled:
+        metar_source_domain = urlparse(config.metar.api_url).netloc
+        xml_parts.append(
+            f"<{namespace_prefix}:metar_source>{escape_xml(metar_source_domain)}</{namespace_prefix}:metar_source>"
+        )
 
     if raw_metar:
         xml_parts.append(

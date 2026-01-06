@@ -57,8 +57,8 @@ def test_generate_metadata_json_day_mode() -> None:
     assert image["sunset"] == "2026-01-02T17:30:00Z"
     assert image["provider_name"] == "Test"
     assert image["camera_name"] == "test_camera"
-    assert image["metar"]["enabled"] is False
     assert image["metar"]["icao_code"] is None
+    assert image["metar"]["source"] is None
     assert image["metar"]["raw_metar"] is None
     assert image["metar"]["raw_taf"] is None
 
@@ -209,8 +209,8 @@ def test_generate_metadata_json_with_metar_enabled() -> None:
     json_data = json.loads(json_bytes.decode("utf-8"))
 
     image = json_data["images"][0]
-    assert image["metar"]["enabled"] is True
     assert image["metar"]["icao_code"] == "LFRK"
+    assert image["metar"]["source"] == "aviationweather.gov"
     assert (
         image["metar"]["raw_metar"]
         == "METAR LFRK 021530Z AUTO 33009KT 9999 FEW041 04/M01 Q1008 NOSIG"
@@ -247,8 +247,8 @@ def test_generate_metadata_json_with_empty_metar() -> None:
     json_data = json.loads(json_bytes.decode("utf-8"))
 
     image = json_data["images"][0]
-    assert image["metar"]["enabled"] is True
     assert image["metar"]["icao_code"] == "LFRK"
+    assert image["metar"]["source"] == "aviationweather.gov"
     assert image["metar"]["raw_metar"] is None
     assert image["metar"]["raw_taf"] is None
 
@@ -346,8 +346,8 @@ def test_generate_metadata_json_all_fields_present() -> None:
     assert "camera_heading" in image["location"]
 
     # METAR fields
-    assert "enabled" in image["metar"]
     assert "icao_code" in image["metar"]
+    assert "source" in image["metar"]
     assert "raw_metar" in image["metar"]
     assert "raw_taf" in image["metar"]
 

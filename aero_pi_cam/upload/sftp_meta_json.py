@@ -3,6 +3,7 @@
 import json
 import os
 from datetime import UTC, datetime, timedelta
+from urllib.parse import urlparse
 
 from ..core.config import Config
 
@@ -113,8 +114,10 @@ def generate_metadata_json(
                 "sunrise": sunrise if sunrise else None,
                 "sunset": sunset if sunset else None,
                 "metar": {
-                    "enabled": config.metar.enabled,
                     "icao_code": config.metar.icao_code if config.metar.enabled else None,
+                    "source": (
+                        urlparse(config.metar.api_url).netloc if config.metar.enabled else None
+                    ),
                     "raw_metar": raw_metar if (config.metar.enabled and raw_metar) else None,
                     "raw_taf": raw_taf if (config.metar.enabled and raw_taf) else None,
                 },
