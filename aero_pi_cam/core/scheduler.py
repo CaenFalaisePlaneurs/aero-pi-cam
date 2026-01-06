@@ -1,5 +1,6 @@
 """Scheduling logic for capture jobs."""
 
+import logging
 import os
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
@@ -12,6 +13,24 @@ from ..weather.day_night import get_day_night_mode
 from ..weather.sun import get_sun_times
 from .config import Config
 from .debug import debug_print
+
+
+class MisfireWarningFilter(logging.Filter):
+    """Filter to suppress APScheduler misfire warnings."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Filter out misfire warnings from APScheduler."""
+        # Suppress warnings about missed job runs (expected when service restarts)
+        if "was missed by" in record.getMessage():
+            return False
+        return True
+
+
+def _configure_scheduler_logger() -> None:
+    """Configure APScheduler logger to suppress misfire warnings."""
+    apscheduler_logger = logging.getLogger("apscheduler")
+    # Add filter to suppress misfire warnings
+    apscheduler_logger.addFilter(MisfireWarningFilter())
 
 
 def get_next_transition_time(now: datetime, config: Config | None) -> datetime | None:
@@ -170,6 +189,7 @@ async def schedule_next_capture(
 
         # Update or create scheduler
         if scheduler is None:
+            _configure_scheduler_logger()
             scheduler = AsyncIOScheduler()
             scheduler.start()
         else:
@@ -246,6 +266,7 @@ async def schedule_next_capture(
 
         # Update or create scheduler
         if scheduler is None:
+            _configure_scheduler_logger()
             scheduler = AsyncIOScheduler()
             scheduler.start()
         else:
