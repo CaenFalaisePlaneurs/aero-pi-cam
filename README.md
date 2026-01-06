@@ -552,7 +552,7 @@ The following metadata is embedded in structured JSON format (EXIF UserComment) 
 - **license**: License identifier (e.g., "CC BY-SA 4.0")
 - **license_url**: URL to the license text
 - **license_mark**: Short license attribution mark
-- **airfield_oaci**: Airfield OACI/ICAO code (if METAR enabled)
+- **airfield_icao**: Airfield ICAO code (if METAR enabled)
 - **metar**: Raw METAR text (if METAR enabled)
 - **taf**: Raw TAF text (if METAR enabled)
 - **sunrise/sunset**: Sunrise and sunset times in ISO 8601 UTC format

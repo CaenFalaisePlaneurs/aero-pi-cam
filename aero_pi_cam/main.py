@@ -184,7 +184,6 @@ async def capture_and_upload() -> None:
         try:
             raw_metar_text = None
             raw_taf_text = None
-            metar_icao_code = None
 
             # Fetch METAR if enabled
             if config.metar.enabled:
@@ -192,7 +191,6 @@ async def capture_and_upload() -> None:
                 if metar_result.success and metar_result.data:
                     raw_metar_text = get_raw_metar(metar_result.data)
                     raw_taf_text = get_raw_taf(metar_result.data)
-                    metar_icao_code = metar_result.data.get("icaoId", config.metar.icao_code)
 
             # Add comprehensive overlay (composites overlay on camera image)
             image_bytes = add_comprehensive_overlay(
@@ -203,7 +201,6 @@ async def capture_and_upload() -> None:
                 sun_times["sunset"],
                 raw_metar=raw_metar_text,
                 raw_taf=raw_taf_text,
-                metar_icao=metar_icao_code,
             )
         except Exception as e:
             # Log overlay errors for debugging

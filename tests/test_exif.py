@@ -130,7 +130,7 @@ def test_build_exif_dict_with_metar_taf(mock_config: Config) -> None:
     raw_taf = "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
 
     exif_dict = build_exif_dict(
-        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf, metar_icao="TEST"
+        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf
     )
 
     # Check UserComment contains structured JSON
@@ -145,7 +145,7 @@ def test_build_exif_dict_with_metar_taf(mock_config: Config) -> None:
     # Verify structured key-value pairs
     assert metadata["camera_name"] == "hangar 2"
     assert metadata["provider_name"] == "TEST - example.com/cam"
-    assert metadata["airfield_oaci"] == "TEST"
+    assert metadata["airfield_icao"] == "TEST"
     assert metadata["metar"] == "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
     assert metadata["taf"] == "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
     assert metadata["sunrise"] == "2026-01-02T07:23:00Z"
@@ -194,7 +194,9 @@ def test_build_exif_dict_without_optional_data(mock_config: Config) -> None:
     # Optional fields should not be present
     assert "metar" not in metadata
     assert "taf" not in metadata
-    assert "airfield_oaci" not in metadata
+    # airfield_icao should always be present (from location.name, not METAR station)
+    assert "airfield_icao" in metadata
+    assert metadata["airfield_icao"] == "TEST"
 
 
 def test_embed_exif_in_jpeg(mock_config: Config) -> None:
@@ -233,7 +235,7 @@ def test_embed_exif_in_jpeg(mock_config: Config) -> None:
 
 
 def test_embed_exif_verifies_custom_tags(mock_config: Config) -> None:
-    """Test that custom tags (METAR, TAF, OACI, sunrise/sunset) are embedded correctly."""
+    """Test that custom tags (METAR, TAF, ICAO, sunrise/sunset) are embedded correctly."""
     import json
 
     # Create a test JPEG image
@@ -248,7 +250,7 @@ def test_embed_exif_verifies_custom_tags(mock_config: Config) -> None:
     raw_metar = "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
     raw_taf = "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
     exif_dict = build_exif_dict(
-        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf, metar_icao="TEST"
+        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf
     )
 
     # Embed EXIF
@@ -263,7 +265,7 @@ def test_embed_exif_verifies_custom_tags(mock_config: Config) -> None:
     comment_text = user_comment[1:-1].decode("utf-8")
     metadata = json.loads(comment_text)
 
-    assert metadata["airfield_oaci"] == "TEST"
+    assert metadata["airfield_icao"] == "TEST"
     assert metadata["metar"] == "TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012"
     assert metadata["taf"] == "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
     assert metadata["sunrise"] == "2026-01-02T07:23:00Z"
@@ -278,7 +280,7 @@ def test_build_xmp_xml(mock_config: Config) -> None:
     raw_taf = "TEST 021200Z 0212/0312 25010KT 9999 OVC030"
 
     xmp_xml = build_xmp_xml(
-        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf, metar_icao="TEST"
+        mock_config, sunrise, sunset, raw_metar=raw_metar, raw_taf=raw_taf
     )
 
     # Verify XMP structure
@@ -286,7 +288,7 @@ def test_build_xmp_xml(mock_config: Config) -> None:
     assert 'xmlns:aero="http://aero-pi-cam.org/xmp/1.0/"' in xmp_xml
     assert "<aero:camera_name>hangar 2</aero:camera_name>" in xmp_xml
     assert "<aero:provider_name>TEST - example.com/cam</aero:provider_name>" in xmp_xml
-    assert "<aero:airfield_oaci>TEST</aero:airfield_oaci>" in xmp_xml
+    assert "<aero:airfield_icao>TEST</aero:airfield_icao>" in xmp_xml
     assert "<aero:metar>TEST 021530Z AUTO 25008KT 9999 OVC030 12/08 Q1012</aero:metar>" in xmp_xml
     assert "<aero:taf>TEST 021200Z 0212/0312 25010KT 9999 OVC030</aero:taf>" in xmp_xml
     assert "<aero:sunrise>2026-01-02T07:23:00Z</aero:sunrise>" in xmp_xml
@@ -323,9 +325,10 @@ def test_build_xmp_xml_without_optional_data(mock_config: Config) -> None:
     assert "<aero:license_url>" in xmp_xml
     assert "<aero:license_mark>" in xmp_xml
     assert "<aero:camera_heading>060° RWY 06</aero:camera_heading>" in xmp_xml
+    # airfield_icao should always be present (from location.name, not METAR station)
+    assert "<aero:airfield_icao>TEST</aero:airfield_icao>" in xmp_xml
     assert "</x:xmpmeta>" in xmp_xml
     # Optional fields should not be present
-    assert "<aero:airfield_oaci>" not in xmp_xml
     assert "<aero:metar>" not in xmp_xml
     assert "<aero:taf>" not in xmp_xml
 

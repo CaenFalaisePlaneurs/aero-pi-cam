@@ -96,7 +96,7 @@ class OverlayConfig(BaseModel):
 
     Overlay covers the full image surface (0,0 to image width, image height).
     Elements are positioned as follows:
-    - Logo + provider name + OACI code: top-left
+    - Logo + provider name + ICAO code: top-left
     - Camera name + UTC timestamp: below logo, aligned left
     - Sunrise + sunset times: below camera info, aligned left
     - Raw METAR: bottom-left, aligned left

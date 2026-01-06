@@ -236,7 +236,7 @@ def test_draw_overlay_on_image_basic(mock_config) -> None:
     sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
 
     draw_overlay_on_image(
-        img, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
+        img, mock_config, capture_time, sunrise_time, sunset_time, None, None
     )
 
     # Verify overlay was drawn
@@ -287,7 +287,6 @@ def test_draw_overlay_on_image_with_metar(mock_config) -> None:
         sunset_time,
         raw_metar="TEST 021200Z 33009KT 9999 FEW044 04/02 Q1011",
         raw_taf=None,
-        metar_icao="TEST",
     )
 
     # Verify overlay was drawn
@@ -338,7 +337,6 @@ def test_draw_overlay_on_image_with_taf(mock_config) -> None:
         sunset_time,
         raw_metar="TEST 021200Z 33009KT 9999 FEW044 04/02 Q1011",
         raw_taf="TEST 021400Z 0215/0224 34010KT 9999 BKN030",
-        metar_icao="TEST",
     )
 
     # Verify overlay was drawn
@@ -357,7 +355,7 @@ def test_draw_overlay_on_image_with_logo(mock_config) -> None:
     test_logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
     with patch("aero_pi_cam.overlay.load_icon", return_value=test_logo):
         draw_overlay_on_image(
-            img, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
+            img, mock_config, capture_time, sunrise_time, sunset_time, None, None
         )
 
     # Verify overlay was drawn
@@ -379,7 +377,7 @@ def test_add_comprehensive_overlay(mock_config) -> None:
     sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
 
     result = add_comprehensive_overlay(
-        image_bytes, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
+        image_bytes, mock_config, capture_time, sunrise_time, sunset_time, None, None
     )
 
     assert isinstance(result, bytes)
@@ -398,7 +396,7 @@ def test_add_comprehensive_overlay_invalid_image(mock_config) -> None:
     sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
 
     result = add_comprehensive_overlay(
-        invalid_bytes, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
+        invalid_bytes, mock_config, capture_time, sunrise_time, sunset_time, None, None
     )
 
     assert result == invalid_bytes
@@ -439,7 +437,7 @@ def test_draw_overlay_shadow_disabled() -> None:
     sunrise_time = datetime(2026, 1, 2, 7, 0, 0, tzinfo=UTC)
     sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
 
-    draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, None, None, None)
+    draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, None, None)
 
     # Verify overlay was drawn
     pixels = list(img.getdata())
@@ -484,7 +482,7 @@ def test_draw_overlay_text_wrapping() -> None:
     # Long METAR text that will wrap
     long_metar = "TEST 021200Z 33009KT 9999 FEW044 04/02 Q1011 NOSIG"
     draw_overlay_on_image(
-        img, config, capture_time, sunrise_time, sunset_time, long_metar, None, "TEST"
+        img, config, capture_time, sunrise_time, sunset_time, long_metar, None
     )
 
     # Verify overlay was drawn
@@ -530,7 +528,7 @@ def test_draw_overlay_taf_with_indentation() -> None:
     # TAF with indentation (leading spaces)
     taf_text = "TEST 021400Z 0215/0224 34010KT 9999 BKN030\n    BECMG 0217/0219 VRB05KT"
     draw_overlay_on_image(
-        img, config, capture_time, sunrise_time, sunset_time, None, taf_text, "TEST"
+        img, config, capture_time, sunrise_time, sunset_time, None, taf_text
     )
 
     # Verify overlay was drawn
@@ -581,7 +579,7 @@ def test_draw_overlay_logo_exception() -> None:
 
     with patch("aero_pi_cam.overlay.load_icon", side_effect=mock_load_icon):
         draw_overlay_on_image(
-            img, config, capture_time, sunrise_time, sunset_time, None, None, None
+            img, config, capture_time, sunrise_time, sunset_time, None, None
         )
 
     # Should not crash, overlay should still be drawn
@@ -633,7 +631,7 @@ def test_draw_overlay_logo_paste_exception() -> None:
         # Should handle exception gracefully
         try:
             draw_overlay_on_image(
-                img, config, capture_time, sunrise_time, sunset_time, None, None, None
+                img, config, capture_time, sunrise_time, sunset_time, None, None
             )
         except Exception:
             # If paste fails, it should be caught internally

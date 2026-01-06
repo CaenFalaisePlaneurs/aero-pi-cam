@@ -281,7 +281,6 @@ def draw_overlay_on_image(
     sunset_time: datetime,
     raw_metar: str | None = None,
     raw_taf: str | None = None,
-    metar_icao: str | None = None,
 ) -> None:
     """Draw overlay elements on a PIL Image.
 
@@ -485,10 +484,10 @@ def draw_overlay_on_image(
     # Raw METAR and TAF at bottom-left (if enabled and available)
     all_text_lines = []
 
-    if config.metar.raw_metar_enabled and raw_metar and metar_icao:
+    if config.metar.raw_metar_enabled and raw_metar:
         all_text_lines.append(raw_metar)
 
-    if config.metar.raw_metar_enabled and raw_taf and metar_icao:
+    if config.metar.raw_metar_enabled and raw_taf:
         # TAF can have multiple lines - preserve them (keep leading spaces)
         taf_lines = raw_taf.split("\n")
         for i, taf_line in enumerate(taf_lines):
@@ -592,7 +591,6 @@ def add_comprehensive_overlay(
     sunset_time: datetime,
     raw_metar: str | None = None,
     raw_taf: str | None = None,
-    metar_icao: str | None = None,
 ) -> bytes:
     """Add comprehensive overlay by compositing overlay image on top of camera image.
 
@@ -621,7 +619,6 @@ def add_comprehensive_overlay(
         sunset_time,
         raw_metar=raw_metar,
         raw_taf=raw_taf,
-        metar_icao=metar_icao,
     )
 
     # Check if overlay has any non-transparent pixels (for debugging)
@@ -656,7 +653,6 @@ def add_comprehensive_overlay(
             sunset_time,
             raw_metar=raw_metar,
             raw_taf=raw_taf,
-            metar_icao=metar_icao,
         )
         xmp_xml = build_xmp_xml(
             config,
@@ -664,7 +660,6 @@ def add_comprehensive_overlay(
             sunset_time,
             raw_metar=raw_metar,
             raw_taf=raw_taf,
-            metar_icao=metar_icao,
         )
         jpeg_bytes = embed_exif_in_jpeg(jpeg_bytes, exif_dict, xmp_xml=xmp_xml)
     except Exception as e:

@@ -1,7 +1,7 @@
 """EXIF metadata embedding for JPEG images.
 
 Handles standard EXIF tags (GPS, ImageDescription, Copyright) and custom
-aeronautical metadata (METAR, TAF, OACI code, sunrise/sunset).
+aeronautical metadata (METAR, TAF, ICAO code, sunrise/sunset).
 Also embeds XMP metadata with custom schema.
 """
 
@@ -75,7 +75,6 @@ def build_exif_dict(
     sunset_time: datetime,
     raw_metar: str | None = None,
     raw_taf: str | None = None,
-    metar_icao: str | None = None,
 ) -> dict:
     """Build EXIF dictionary with standard and custom metadata.
 
@@ -85,7 +84,6 @@ def build_exif_dict(
         sunset_time: Sunset time in UTC
         raw_metar: Optional raw METAR text
         raw_taf: Optional raw TAF text
-        metar_icao: Optional ICAO code for METAR/TAF
 
     Returns:
         Dictionary suitable for piexif.dump() containing EXIF data
@@ -124,10 +122,10 @@ def build_exif_dict(
     metadata_dict["license_mark"] = config.metadata.license_mark
     metadata_dict["camera_heading"] = config.location.camera_heading
 
-    # Optional aeronautical data
-    if metar_icao:
-        metadata_dict["airfield_oaci"] = metar_icao
+    # Airfield ICAO code (from location config, not METAR station)
+    metadata_dict["airfield_icao"] = config.location.name
 
+    # Optional aeronautical data
     if raw_metar:
         metadata_dict["metar"] = raw_metar
 
@@ -156,7 +154,6 @@ def build_xmp_xml(
     sunset_time: datetime,
     raw_metar: str | None = None,
     raw_taf: str | None = None,
-    metar_icao: str | None = None,
 ) -> str:
     """Build XMP XML with custom aeronautical schema.
 
@@ -166,7 +163,6 @@ def build_xmp_xml(
         sunset_time: Sunset time in UTC
         raw_metar: Optional raw METAR text
         raw_taf: Optional raw TAF text
-        metar_icao: Optional ICAO code for METAR/TAF
 
     Returns:
         XMP XML string with custom schema
@@ -204,12 +200,8 @@ def build_xmp_xml(
         f"<{namespace_prefix}:license_url>{escape_xml(config.metadata.license_url)}</{namespace_prefix}:license_url>",
         f"<{namespace_prefix}:license_mark>{escape_xml(config.metadata.license_mark)}</{namespace_prefix}:license_mark>",
         f"<{namespace_prefix}:camera_heading>{escape_xml(config.location.camera_heading)}</{namespace_prefix}:camera_heading>",
+        f"<{namespace_prefix}:airfield_icao>{escape_xml(config.location.name)}</{namespace_prefix}:airfield_icao>",
     ]
-
-    if metar_icao:
-        xml_parts.append(
-            f"<{namespace_prefix}:airfield_oaci>{escape_xml(metar_icao)}</{namespace_prefix}:airfield_oaci>"
-        )
 
     if raw_metar:
         xml_parts.append(
