@@ -1,0 +1,50 @@
+---
+globs: CHANGELOG.md
+alwaysApply: false
+---
+# Changelog Guidelines
+
+Follow the [Common Changelog](https://common-changelog.org) style guide when updating `CHANGELOG.md`.
+
+## Format
+
+```markdown
+## [X.Y.Z] - YYYY-MM-DD
+
+### Changed
+
+- Description of change ([#123](link)) ([@author](link))
+
+[X.Y.Z]: https://github.com/CaenFalaisePlaneurs/aero-pi-cam/releases/tag/vX.Y.Z
+```
+
+## Rules
+
+1. **Date format**: Use ISO 8601 (`YYYY-MM-DD`). Run `date +%Y-%m-%d` to get today's date.
+2. **Categories** (in order, only include if applicable):
+   - `Changed` - changes in existing functionality
+   - `Added` - new features
+   - `Removed` - removed features
+   - `Fixed` - bug fixes
+3. **References**: Link to PR/issue at end of line: `([#123](url))`
+4. **Authors**: Credit contributors: `([@name](url))`
+5. **Breaking changes**: Prefix with `**Breaking:**` and explain migration
+6. **Imperative mood**: Write "Add feature" not "Added feature"
+7. **No prefixes**: Don't use `feat:`, `fix:`, etc. - use natural language
+8. **Link releases**: Add reference link at bottom for each version
+
+## Example Entry
+
+```markdown
+## [1.1.0] - 2026-02-15
+
+### Added
+
+- Support for multiple camera profiles ([#45](https://github.com/CaenFalaisePlaneurs/aero-pi-cam/pull/45)) ([@contributor](https://github.com/CaenFalaisePlaneurs))
+
+### Fixed
+
+- **Breaking:** Rename `capture_interval` to `interval_seconds` ([#42](https://github.com/CaenFalaisePlaneurs/aero-pi-cam/pull/42))
+
+[1.1.0]: https://github.com/CaenFalaisePlaneurs/aero-pi-cam/releases/tag/v1.1.0
+```
