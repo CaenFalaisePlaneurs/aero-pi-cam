@@ -19,6 +19,35 @@ from aero_pi_cam.config import (
 from aero_pi_cam.upload import ApiUploader, SftpUploader, create_uploader, upload_image
 
 
+# Helper function to create minimal config for testing
+def _create_test_config(
+    upload_method: str = "API",
+    api_config: ApiConfig | None = None,
+    sftp_config: SftpConfig | None = None,
+) -> Config:
+    """Create a minimal test config."""
+    return Config(
+        camera=CameraConfig(rtsp_url="rtsp://test"),
+        location=LocationConfig(
+            name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
+        ),
+        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
+        upload_method=upload_method,
+        api=api_config,
+        sftp=sftp_config,
+        overlay=OverlayConfig(
+            provider_name="Test",
+            provider_logo="test.svg",
+            camera_name="test_camera",
+        ),
+        metar=MetarConfig(icao_code="TEST"),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test",
+            webcam_url="https://test.com",
+        ),
+    )
+
+
 class MockFileContextManager:
     """Mock async context manager for SFTP file operations."""
 
@@ -47,6 +76,7 @@ async def test_upload_success() -> None:
         key="test-api-key",
         timeout_seconds=30,
     )
+    config = _create_test_config(api_config=api_config)
 
     metadata = {
         "timestamp": "2026-01-02T15:30:00Z",
@@ -70,7 +100,7 @@ async def test_upload_success() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        result = await upload_image(b"fake-jpeg-data", metadata, api_config)
+        result = await upload_image(b"fake-jpeg-data", metadata, config)
 
     assert result.success is True
     assert result.status_code == 201
@@ -85,6 +115,7 @@ async def test_upload_sends_correct_headers() -> None:
         key="test-api-key",
         timeout_seconds=30,
     )
+    config = _create_test_config(api_config=api_config)
 
     metadata = {
         "timestamp": "2026-01-02T15:30:00Z",
@@ -102,7 +133,7 @@ async def test_upload_sends_correct_headers() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        await upload_image(b"fake-jpeg-data", metadata, api_config)
+        await upload_image(b"fake-jpeg-data", metadata, config)
 
         call_kwargs = mock_client.put.call_args[1]
         assert call_kwargs["headers"]["Authorization"] == "Bearer test-api-key"
@@ -120,6 +151,7 @@ async def test_upload_4xx_no_retry() -> None:
         key="test-api-key",
         timeout_seconds=30,
     )
+    config = _create_test_config(api_config=api_config)
 
     metadata = {
         "timestamp": "2026-01-02T15:30:00Z",
@@ -137,7 +169,7 @@ async def test_upload_4xx_no_retry() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        result = await upload_image(b"fake-jpeg-data", metadata, api_config)
+        result = await upload_image(b"fake-jpeg-data", metadata, config)
 
     assert result.success is False
     assert result.status_code == 400
@@ -152,6 +184,7 @@ async def test_upload_retry_on_5xx() -> None:
         key="test-api-key",
         timeout_seconds=30,
     )
+    config = _create_test_config(api_config=api_config)
 
     metadata = {
         "timestamp": "2026-01-02T15:30:00Z",
@@ -173,7 +206,7 @@ async def test_upload_retry_on_5xx() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        result = await upload_image(b"fake-jpeg-data", metadata, api_config)
+        result = await upload_image(b"fake-jpeg-data", metadata, config)
 
     assert result.success is True
 
@@ -186,6 +219,7 @@ async def test_upload_retry_on_429() -> None:
         key="test-api-key",
         timeout_seconds=30,
     )
+    config = _create_test_config(api_config=api_config)
 
     metadata = {
         "timestamp": "2026-01-02T15:30:00Z",
@@ -207,7 +241,7 @@ async def test_upload_retry_on_429() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        result = await upload_image(b"fake-jpeg-data", metadata, api_config)
+        result = await upload_image(b"fake-jpeg-data", metadata, config)
 
     assert result.success is True
 
@@ -220,6 +254,7 @@ async def test_upload_fails_after_max_retries() -> None:
         key="test-api-key",
         timeout_seconds=30,
     )
+    config = _create_test_config(api_config=api_config)
 
     metadata = {
         "timestamp": "2026-01-02T15:30:00Z",
@@ -237,7 +272,7 @@ async def test_upload_fails_after_max_retries() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        result = await upload_image(b"fake-jpeg-data", metadata, api_config)
+        result = await upload_image(b"fake-jpeg-data", metadata, config)
 
     assert result.success is False
     assert "All 3 upload attempts failed" in result.error
@@ -253,6 +288,7 @@ async def test_upload_timeout() -> None:
         key="test-api-key",
         timeout_seconds=30,
     )
+    config = _create_test_config(api_config=api_config)
 
     metadata = {
         "timestamp": "2026-01-02T15:30:00Z",
@@ -266,7 +302,7 @@ async def test_upload_timeout() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        result = await upload_image(b"fake-jpeg-data", metadata, api_config)
+        result = await upload_image(b"fake-jpeg-data", metadata, config)
 
     assert result.success is False
     assert "timeout" in result.error.lower()
@@ -282,6 +318,7 @@ async def test_upload_cancelled_during_request() -> None:
         key="test-api-key",
         timeout_seconds=30,
     )
+    config = _create_test_config(api_config=api_config)
 
     metadata = {
         "timestamp": "2026-01-02T15:30:00Z",
@@ -295,7 +332,7 @@ async def test_upload_cancelled_during_request() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        result = await upload_image(b"fake-jpeg-data", metadata, api_config)
+        result = await upload_image(b"fake-jpeg-data", metadata, config)
 
     assert result.success is False
     assert "cancelled" in result.error.lower()
@@ -311,6 +348,7 @@ async def test_upload_cancelled_during_backoff() -> None:
         key="test-api-key",
         timeout_seconds=30,
     )
+    config = _create_test_config(api_config=api_config)
 
     metadata = {
         "timestamp": "2026-01-02T15:30:00Z",
@@ -331,7 +369,7 @@ async def test_upload_cancelled_during_backoff() -> None:
         patch("httpx.AsyncClient", return_value=mock_client),
         patch("asyncio.sleep", side_effect=asyncio.CancelledError()),
     ):
-        result = await upload_image(b"fake-jpeg-data", metadata, api_config)
+        result = await upload_image(b"fake-jpeg-data", metadata, config)
 
     assert result.success is False
     assert "cancelled" in result.error.lower()
@@ -347,6 +385,7 @@ async def test_upload_request_error() -> None:
         key="test-api-key",
         timeout_seconds=30,
     )
+    config = _create_test_config(api_config=api_config)
 
     metadata = {
         "timestamp": "2026-01-02T15:30:00Z",
@@ -360,37 +399,10 @@ async def test_upload_request_error() -> None:
     mock_client.__aexit__ = AsyncMock(return_value=None)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        result = await upload_image(b"fake-jpeg-data", metadata, api_config)
+        result = await upload_image(b"fake-jpeg-data", metadata, config)
 
     assert result.success is False
     assert "Connection error" in result.error
-
-
-# Helper function to create minimal config for testing
-def _create_test_config(
-    upload_method: str = "API",
-    api_config: ApiConfig | None = None,
-    sftp_config: SftpConfig | None = None,
-) -> Config:
-    """Create a minimal test config."""
-    return Config(
-        camera=CameraConfig(rtsp_url="rtsp://test"),
-        location=LocationConfig(name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
-        upload_method=upload_method,
-        api=api_config,
-        sftp=sftp_config,
-        overlay=OverlayConfig(
-            provider_name="Test",
-            provider_logo="test.svg",
-            camera_name="test_camera",
-        ),
-        metar=MetarConfig(icao_code="TEST"),
-        metadata=MetadataConfig(
-            github_repo="https://github.com/test",
-            webcam_url="https://test.com",
-        ),
-    )
 
 
 # Tests for ApiUploader

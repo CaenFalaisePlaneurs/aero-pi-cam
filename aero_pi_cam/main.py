@@ -108,13 +108,17 @@ def get_day_night_mode(capture_time: datetime) -> bool:
 
 async def capture_and_upload() -> None:
     """Main capture and upload workflow."""
-    global is_running, _camera_connected, _api_connected
+    global is_running, _camera_connected, _api_connected, _shutdown_event
     if is_running:
         print("Capture skipped: already running (previous capture still in progress)")
         return
 
     if config is None:
         debug_print("\nCapture skipped: no config")
+        return
+
+    # Check for shutdown before starting
+    if _shutdown_event and _shutdown_event.is_set():
         return
 
     is_running = True
@@ -124,6 +128,10 @@ async def capture_and_upload() -> None:
     is_day_time = get_day_night_mode(capture_time)
 
     try:
+        # Check for shutdown before capture
+        if _shutdown_event and _shutdown_event.is_set():
+            return
+
         # Capture frame (use separate credentials if provided, otherwise use URL-embedded)
         result = capture_frame(
             config.camera.rtsp_url,
@@ -133,6 +141,10 @@ async def capture_and_upload() -> None:
         if not result.success or not result.image:
             if result.error:
                 debug_print(f"Capture failed: {result.error}")
+            return
+
+        # Check for shutdown after capture
+        if _shutdown_event and _shutdown_event.is_set():
             return
 
         # Log first camera connection
@@ -202,6 +214,10 @@ async def capture_and_upload() -> None:
                 traceback.print_exc()
             # Continue with original image if overlay fails
             pass
+
+        # Check for shutdown before upload
+        if _shutdown_event and _shutdown_event.is_set():
+            return
 
         # Upload composited image (camera + overlay)
         # Always upload (dummy server will be used in debug mode or if API URL is not set)
@@ -525,9 +541,13 @@ async def run_service(config_path: str | None = None) -> None:
         pass
     finally:
         # Shutdown scheduler gracefully
+        # Use wait=False to avoid blocking if a job is stuck, but give it a short timeout
         if scheduler:
             try:
-                scheduler.shutdown()
+                # Remove all jobs first to prevent new ones from starting
+                scheduler.remove_all_jobs()
+                # Shutdown without waiting (jobs will check shutdown event and return early)
+                scheduler.shutdown(wait=False)
             except Exception:
                 pass
 

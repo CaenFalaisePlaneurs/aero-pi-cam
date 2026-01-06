@@ -360,79 +360,17 @@ def create_uploader(config: Config) -> UploadInterface:
 async def upload_image(
     image_bytes: bytes,
     metadata: dict[str, str],
-    api_config: ApiConfig | None = None,
-    config: Config | None = None,
+    config: Config,
 ) -> UploadResult:
     """Upload image using configured upload method.
 
     Args:
         image_bytes: Image data to upload
         metadata: Metadata dictionary with timestamp, location, is_day
-        api_config: API configuration (deprecated, use config instead)
-        config: Full configuration object (required for new upload methods)
+        config: Full configuration object
 
     Returns:
         UploadResult with success status and response details
     """
-    if config is None:
-        # Backward compatibility: if config is None but api_config is provided
-        if api_config is None:
-            return UploadResult(
-                success=False,
-                error="Either config or api_config must be provided",
-            )
-        # Use ApiUploader directly for backward compatibility
-        # Create minimal config for backward compatibility (API upload doesn't need full config)
-        from .config import (
-            CameraConfig,
-            LocationConfig,
-            MetadataConfig,
-            MetarConfig,
-            OverlayConfig,
-            ScheduleConfig,
-        )
-
-        minimal_config = Config(
-            camera=CameraConfig(rtsp_url="rtsp://dummy", rtsp_user=None, rtsp_password=None),
-            location=LocationConfig(name="DUMMY", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"),
-            schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
-            upload_method="API",
-            api=api_config,
-            sftp=None,
-            overlay=OverlayConfig(
-                provider_name="Dummy",
-                provider_logo="dummy.svg",
-                logo_size=72,
-                camera_name="dummy",
-                font_color="white",
-                font_size=16,
-                font_path=None,
-                sun_icon_size=24,
-                line_spacing=4,
-                padding=15,
-                background_color="rgba(0,0,0,0.6)",
-                shadow_enabled=True,
-                shadow_offset_x=2,
-                shadow_offset_y=2,
-                shadow_color="black",
-            ),
-            metar=MetarConfig(
-                enabled=False,
-                icao_code="XXXX",
-                api_url="https://aviationweather.gov/api/data/metar",
-                raw_metar_enabled=True,
-            ),
-            metadata=MetadataConfig(
-                github_repo="https://github.com/dummy",
-                webcam_url="https://dummy.com",
-                license="CC BY-SA 4.0",
-                license_url="https://creativecommons.org/licenses/by-sa/4.0/",
-                license_mark="This work is licensed under CC BY-SA 4.0.",
-            ),
-            debug=None,
-        )
-        uploader: UploadInterface = ApiUploader(api_config)
-        return await uploader.upload(image_bytes, metadata, minimal_config)
-
     uploader = create_uploader(config)
     return await uploader.upload(image_bytes, metadata, config)

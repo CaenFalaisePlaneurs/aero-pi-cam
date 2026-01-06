@@ -39,6 +39,24 @@ Quick reference for AI-assisted development. The codebase itself is the primary 
 - **Unit Tests**: Whenever code changes are made, unit tests must be checked and updated if needed. Run `pytest` to verify all tests pass.
 - Run `/quality-fix` before committing
 
+## Backward Compatibility
+
+**CRITICAL: Before making any change that affects APIs, function signatures, or configuration:**
+
+1. **Ask**: Does this change need to be backward compatible?
+2. **For this project**: This is a **new, never-released application** - **backward compatibility is NOT required**
+3. **When making breaking changes**:
+   - ✅ Remove old/deprecated parameters, functions, or code paths
+   - ✅ Update all call sites and tests to use the new approach
+   - ✅ Clean up any legacy compatibility code
+   - ❌ Do NOT add backward compatibility code unless explicitly required
+   - ❌ Do NOT keep deprecated parameters "for compatibility"
+
+**If backward compatibility is needed** (e.g., for a released library):
+- Add deprecation warnings with clear migration paths
+- Document removal timeline
+- Provide migration examples
+
 ## Error Handling Pattern
 
 Use result dataclasses instead of exceptions for control flow:
@@ -141,3 +159,4 @@ Example: If adding `piexif>=1.1.3`:
 - [ ] Code formatted and linted
 - [ ] Unit tests checked and updated if needed (run `pytest` to verify)
 - [ ] **Dependencies added to BOTH `requirements.txt` AND `pyproject.toml`**
+- [ ] **Backward compatibility considered** - removed legacy code if not needed

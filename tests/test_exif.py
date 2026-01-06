@@ -292,10 +292,7 @@ def test_build_xmp_xml(mock_config: Config) -> None:
     assert "<aero:sunrise>2026-01-02T07:23:00Z</aero:sunrise>" in xmp_xml
     assert "<aero:sunset>2026-01-02T17:45:00Z</aero:sunset>" in xmp_xml
     # Verify new fields
-    assert (
-        "<aero:github_repo>https://github.com/test/aero-pi-cam</aero:github_repo>"
-        in xmp_xml
-    )
+    assert "<aero:github_repo>https://github.com/test/aero-pi-cam</aero:github_repo>" in xmp_xml
     assert "<aero:webcam_url>https://example.com/cam</aero:webcam_url>" in xmp_xml
     assert "<aero:license>CC BY-SA 4.0</aero:license>" in xmp_xml
     assert (
