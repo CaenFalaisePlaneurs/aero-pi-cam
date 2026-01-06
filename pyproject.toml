@@ -29,7 +29,7 @@ aero-pi-cam-setup = "aero_pi_cam.setup.setup:main"
 aero-pi-cam-uninstall = "aero_pi_cam.setup.uninstall:main"
 
 [tool.setuptools]
-packages = ["aero_pi_cam"]
+packages = {find = {}}
 
 [tool.setuptools.package-data]
 aero_pi_cam = ["assets/**/*"]
