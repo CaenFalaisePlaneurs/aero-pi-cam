@@ -1,8 +1,8 @@
-# Webcam Capture Service
+![aero-pi-cam logo](docs/aero-pi-cam_logo.png)
+
+# aero-pi-cam
 
 A Python 3.13 background service for Raspberry Pi that captures images from an IP camera via RTSP/ffmpeg on a day/night schedule and uploads them via API or SFTP.
-
-**Aeronautical Compliance**: All timestamps and time calculations use UTC (Coordinated Universal Time) exclusively. No timezone conversions or daylight saving time adjustments are applied, ensuring compliance with aeronautical standards.
 
 ## Features
 
@@ -15,6 +15,8 @@ A Python 3.13 background service for Raspberry Pi that captures images from an I
 - **XMP metadata**: Custom XMP schema with all metadata duplicated for maximum compatibility
 - **Debug mode**: Uses dummy API server for testing (saves images locally, no external API needed)
 - **Systemd service**: Auto-start, auto-restart, journald logging
+
+> **Note**: All timestamps and time calculations use UTC (Coordinated Universal Time) exclusively, ensuring compliance with aeronautical standards.
 
 ## Requirements
 
