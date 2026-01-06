@@ -1,3 +1,8 @@
+---
+layout: default
+title: Python Version Compatibility
+---
+
 # Python Version Compatibility
 
 This project is designed to work with **Python 3.13.5** (as included on Raspberry Pi OS).

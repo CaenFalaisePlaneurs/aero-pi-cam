@@ -1,3 +1,8 @@
+---
+layout: default
+title: Contributing Guide
+---
+
 # Contributing
 
 ## Development Setup

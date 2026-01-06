@@ -1,3 +1,8 @@
+---
+layout: default
+title: Testing Pip Package Installation
+---
+
 # Testing Pip Package Installation
 
 This document describes how to test the pip package installation process using Docker.
