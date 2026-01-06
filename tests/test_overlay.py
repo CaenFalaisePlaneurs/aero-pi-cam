@@ -7,22 +7,23 @@ from unittest.mock import patch
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from src.config import (
+from aero_pi_cam.core.config import (
     ApiConfig,
     CameraConfig,
     Config,
     LocationConfig,
+    MetadataConfig,
     MetarConfig,
     OverlayConfig,
     ScheduleConfig,
+    UploadConfig,
 )
-from src.overlay import (
+from aero_pi_cam.overlay.overlay import (
     add_comprehensive_overlay,
     draw_overlay_on_image,
     draw_text_with_shadow,
-    generate_overlay_only,
+    load_font,
     load_icon,
-    load_poppins_font,
     parse_color,
     paste_image_with_shadow,
 )
@@ -33,12 +34,17 @@ def mock_config() -> Config:
     """Create a mock config for testing."""
     return Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        location=LocationConfig(
+            name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
+        ),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -48,6 +54,13 @@ def mock_config() -> Config:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=False, icao_code="TEST"),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
 
@@ -87,19 +100,19 @@ def test_parse_color_unknown_defaults_to_white() -> None:
     assert parse_color("unknown") == (255, 255, 255)
 
 
-def test_load_poppins_font_with_font_file(mock_config) -> None:
+def test_load_font_with_font_file(mock_config) -> None:
     """Test loading Poppins font when font file exists."""
     # This will use the actual font if it exists, or fallback to default
-    font = load_poppins_font(16)
+    font = load_font(16)
     assert font is not None
     # FreeTypeFont is a subclass, so check for ImageFont base class or FreeTypeFont
     assert hasattr(font, "getsize") or hasattr(font, "getbbox")
 
 
-def test_load_poppins_font_fallback() -> None:
-    """Test loading Poppins font falls back to default when font missing."""
-    with patch("src.overlay.Path.exists", return_value=False):
-        font = load_poppins_font(16)
+def test_load_font_fallback() -> None:
+    """Test loading font falls back to default when font missing."""
+    with patch("aero_pi_cam.overlay.overlay.Path.exists", return_value=False):
+        font = load_font(16)
         assert font is not None
         # FreeTypeFont is a subclass, so check for ImageFont base class or FreeTypeFont
         assert hasattr(font, "getsize") or hasattr(font, "getbbox")
@@ -118,10 +131,10 @@ def test_load_poppins_font_exception() -> None:
         return original_truetype(*args, **kwargs)
 
     with (
-        patch("src.overlay.Path.exists", return_value=True),
-        patch("src.overlay.ImageFont.truetype", side_effect=mock_truetype),
+        patch("aero_pi_cam.overlay.overlay.Path.exists", return_value=True),
+        patch("aero_pi_cam.overlay.overlay.ImageFont.truetype", side_effect=mock_truetype),
     ):
-        font = load_poppins_font(16)
+        font = load_font(16)
         assert font is not None
         # Should fallback to default
         assert hasattr(font, "getsize") or hasattr(font, "getbbox")
@@ -130,7 +143,7 @@ def test_load_poppins_font_exception() -> None:
 def test_load_icon_codebase_icon() -> None:
     """Test loading codebase icon."""
     # Test with actual sunrise icon if it exists
-    icon = load_icon("images/icons/sunrise.svg", 24, is_codebase_icon=True)
+    icon = load_icon("assets/icons/sunrise.svg", 24, is_codebase_icon=True)
     # Should return None if file doesn't exist, or Image if it does
     assert icon is None or isinstance(icon, Image.Image)
 
@@ -149,7 +162,7 @@ def test_load_icon_absolute_path() -> None:
 
 def test_load_icon_exception_handling() -> None:
     """Test load_icon handles exceptions gracefully."""
-    with patch("src.overlay.cairosvg.svg2png", side_effect=Exception("Test error")):
+    with patch("aero_pi_cam.overlay.overlay.cairosvg.svg2png", side_effect=Exception("Test error")):
         icon = load_icon("test.svg", 24, is_codebase_icon=False)
         assert icon is None
 
@@ -226,9 +239,7 @@ def test_draw_overlay_on_image_basic(mock_config) -> None:
     sunrise_time = datetime(2026, 1, 2, 7, 0, 0, tzinfo=UTC)
     sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
 
-    draw_overlay_on_image(
-        img, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
-    )
+    draw_overlay_on_image(img, mock_config, capture_time, sunrise_time, sunset_time, None, None)
 
     # Verify overlay was drawn
     pixels = list(img.getdata())
@@ -244,12 +255,17 @@ def test_draw_overlay_on_image_with_metar(mock_config) -> None:
 
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        location=LocationConfig(
+            name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
+        ),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -259,6 +275,13 @@ def test_draw_overlay_on_image_with_metar(mock_config) -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=True, icao_code="TEST", raw_metar_enabled=True),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     draw_overlay_on_image(
@@ -269,7 +292,6 @@ def test_draw_overlay_on_image_with_metar(mock_config) -> None:
         sunset_time,
         raw_metar="TEST 021200Z 33009KT 9999 FEW044 04/02 Q1011",
         raw_taf=None,
-        metar_icao="TEST",
     )
 
     # Verify overlay was drawn
@@ -286,12 +308,17 @@ def test_draw_overlay_on_image_with_taf(mock_config) -> None:
 
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        location=LocationConfig(
+            name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
+        ),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -301,6 +328,13 @@ def test_draw_overlay_on_image_with_taf(mock_config) -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=True, icao_code="TEST", raw_metar_enabled=True),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     draw_overlay_on_image(
@@ -311,7 +345,6 @@ def test_draw_overlay_on_image_with_taf(mock_config) -> None:
         sunset_time,
         raw_metar="TEST 021200Z 33009KT 9999 FEW044 04/02 Q1011",
         raw_taf="TEST 021400Z 0215/0224 34010KT 9999 BKN030",
-        metar_icao="TEST",
     )
 
     # Verify overlay was drawn
@@ -328,33 +361,12 @@ def test_draw_overlay_on_image_with_logo(mock_config) -> None:
 
     # Create a simple test logo
     test_logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
-    with patch("src.overlay.load_icon", return_value=test_logo):
-        draw_overlay_on_image(
-            img, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
-        )
+    with patch("aero_pi_cam.overlay.overlay.load_icon", return_value=test_logo):
+        draw_overlay_on_image(img, mock_config, capture_time, sunrise_time, sunset_time, None, None)
 
     # Verify overlay was drawn
     pixels = list(img.getdata())
     assert any(p[3] > 0 for p in pixels)
-
-
-def test_generate_overlay_only(mock_config) -> None:
-    """Test generating overlay-only image."""
-    capture_time = datetime(2026, 1, 2, 12, 0, 0, tzinfo=UTC)
-    sunrise_time = datetime(2026, 1, 2, 7, 0, 0, tzinfo=UTC)
-    sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
-
-    result = generate_overlay_only(
-        800, 600, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
-    )
-
-    assert isinstance(result, bytes)
-    assert len(result) > 0
-
-    # Verify it's a valid PNG
-    img = Image.open(BytesIO(result))
-    assert img.size == (800, 600)
-    assert img.mode == "RGBA"
 
 
 def test_add_comprehensive_overlay(mock_config) -> None:
@@ -371,7 +383,7 @@ def test_add_comprehensive_overlay(mock_config) -> None:
     sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
 
     result = add_comprehensive_overlay(
-        image_bytes, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
+        image_bytes, mock_config, capture_time, sunrise_time, sunset_time, None, None
     )
 
     assert isinstance(result, bytes)
@@ -390,7 +402,7 @@ def test_add_comprehensive_overlay_invalid_image(mock_config) -> None:
     sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
 
     result = add_comprehensive_overlay(
-        invalid_bytes, mock_config, capture_time, sunrise_time, sunset_time, None, None, None
+        invalid_bytes, mock_config, capture_time, sunrise_time, sunset_time, None, None
     )
 
     assert result == invalid_bytes
@@ -400,12 +412,17 @@ def test_draw_overlay_shadow_disabled() -> None:
     """Test drawing overlay with shadow disabled."""
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        location=LocationConfig(
+            name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
+        ),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -415,6 +432,13 @@ def test_draw_overlay_shadow_disabled() -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=False, icao_code="TEST"),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     img = Image.new("RGBA", (800, 600), (0, 0, 0, 0))
@@ -422,7 +446,7 @@ def test_draw_overlay_shadow_disabled() -> None:
     sunrise_time = datetime(2026, 1, 2, 7, 0, 0, tzinfo=UTC)
     sunset_time = datetime(2026, 1, 2, 17, 0, 0, tzinfo=UTC)
 
-    draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, None, None, None)
+    draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, None, None)
 
     # Verify overlay was drawn
     pixels = list(img.getdata())
@@ -433,12 +457,17 @@ def test_draw_overlay_text_wrapping() -> None:
     """Test text wrapping in METAR/TAF overlay."""
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        location=LocationConfig(
+            name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
+        ),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -448,6 +477,13 @@ def test_draw_overlay_text_wrapping() -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=True, icao_code="TEST", raw_metar_enabled=True),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     img = Image.new("RGBA", (200, 200), (0, 0, 0, 0))  # Small image to force wrapping
@@ -457,9 +493,7 @@ def test_draw_overlay_text_wrapping() -> None:
 
     # Long METAR text that will wrap
     long_metar = "TEST 021200Z 33009KT 9999 FEW044 04/02 Q1011 NOSIG"
-    draw_overlay_on_image(
-        img, config, capture_time, sunrise_time, sunset_time, long_metar, None, "TEST"
-    )
+    draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, long_metar, None)
 
     # Verify overlay was drawn
     pixels = list(img.getdata())
@@ -470,12 +504,17 @@ def test_draw_overlay_taf_with_indentation() -> None:
     """Test TAF text with indentation preservation."""
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        location=LocationConfig(
+            name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
+        ),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -485,6 +524,13 @@ def test_draw_overlay_taf_with_indentation() -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=True, icao_code="TEST", raw_metar_enabled=True),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     img = Image.new("RGBA", (400, 400), (0, 0, 0, 0))
@@ -494,9 +540,7 @@ def test_draw_overlay_taf_with_indentation() -> None:
 
     # TAF with indentation (leading spaces)
     taf_text = "TEST 021400Z 0215/0224 34010KT 9999 BKN030\n    BECMG 0217/0219 VRB05KT"
-    draw_overlay_on_image(
-        img, config, capture_time, sunrise_time, sunset_time, None, taf_text, "TEST"
-    )
+    draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, None, taf_text)
 
     # Verify overlay was drawn
     pixels = list(img.getdata())
@@ -507,12 +551,17 @@ def test_draw_overlay_logo_exception() -> None:
     """Test drawing overlay handles logo loading exception."""
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        location=LocationConfig(
+            name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
+        ),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -522,6 +571,13 @@ def test_draw_overlay_logo_exception() -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=False, icao_code="TEST"),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     img = Image.new("RGBA", (800, 600), (0, 0, 0, 0))
@@ -535,10 +591,8 @@ def test_draw_overlay_logo_exception() -> None:
             raise Exception("Logo error")
         return None  # Return None for codebase icons (they're optional)
 
-    with patch("src.overlay.load_icon", side_effect=mock_load_icon):
-        draw_overlay_on_image(
-            img, config, capture_time, sunrise_time, sunset_time, None, None, None
-        )
+    with patch("aero_pi_cam.overlay.load_icon", side_effect=mock_load_icon):
+        draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, None, None)
 
     # Should not crash, overlay should still be drawn
     pixels = list(img.getdata())
@@ -549,12 +603,17 @@ def test_draw_overlay_logo_paste_exception() -> None:
     """Test drawing overlay handles logo paste exception."""
     config = Config(
         camera=CameraConfig(rtsp_url="rtsp://test:pass@192.168.0.1:554/stream1"),
-        location=LocationConfig(name="TEST", latitude=48.9267952, longitude=-0.1477169),
-        schedule=ScheduleConfig(day_interval_minutes=5, night_interval_minutes=60),
-        api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        location=LocationConfig(
+            name="TEST", latitude=48.9, longitude=-0.1, camera_heading="060° RWY 06"
+        ),
+        schedule=ScheduleConfig(day_interval_seconds=300, night_interval_seconds=3600),
+        upload=UploadConfig(
+            method="API",
+            api=ApiConfig(url="https://api.example.com", key="test-key", timeout_seconds=30),
+        ),
         overlay=OverlayConfig(
             provider_name="Test Provider",
-            provider_logo="images/logo.svg",
+            provider_logo="assets/logo.svg",
             camera_name="test camera",
             font_color="white",
             font_size=16,
@@ -564,6 +623,13 @@ def test_draw_overlay_logo_paste_exception() -> None:
             shadow_color="black",
         ),
         metar=MetarConfig(enabled=False, icao_code="TEST"),
+        metadata=MetadataConfig(
+            github_repo="https://github.com/test/repo",
+            webcam_url="https://example.com/cam",
+            license="CC BY-SA 4.0",
+            license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+            license_mark="Test license mark",
+        ),
     )
 
     img = Image.new("RGBA", (800, 600), (0, 0, 0, 0))
@@ -574,14 +640,12 @@ def test_draw_overlay_logo_paste_exception() -> None:
     # Create a logo that will cause paste to fail
     test_logo = Image.new("RGBA", (50, 50), (255, 0, 0, 255))
     with (
-        patch("src.overlay.load_icon", return_value=test_logo),
-        patch("src.overlay.paste_image_with_shadow", side_effect=Exception("Paste error")),
+        patch("aero_pi_cam.overlay.load_icon", return_value=test_logo),
+        patch("aero_pi_cam.overlay.paste_image_with_shadow", side_effect=Exception("Paste error")),
     ):
         # Should handle exception gracefully
         try:
-            draw_overlay_on_image(
-                img, config, capture_time, sunrise_time, sunset_time, None, None, None
-            )
+            draw_overlay_on_image(img, config, capture_time, sunrise_time, sunset_time, None, None)
         except Exception:
             # If paste fails, it should be caught internally
             pass

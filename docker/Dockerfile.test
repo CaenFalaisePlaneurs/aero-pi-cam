@@ -1,0 +1,40 @@
+# Dockerfile for testing pip package installation
+# Tests the package installation process as it would work on Raspberry Pi
+
+FROM python:3.13.5-slim
+
+# Set metadata
+LABEL maintainer="Nicolas Massart <contact@caenfalaiseplaneurs.fr>"
+LABEL description="Webcam Capture Service - Package Installation Test"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies needed for testing
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git \
+        ca-certificates \
+        systemd \
+        systemd-sysv \
+        && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create a test user (simulating pi user)
+RUN useradd -m -s /bin/bash testuser
+
+# Set working directory
+WORKDIR /test
+
+# Copy the project files
+COPY . /source
+
+# Create a script to test the installation
+COPY test-pip-install.sh /test/test-pip-install.sh
+RUN chmod +x /test/test-pip-install.sh
+
+# Run the test script
+CMD ["/test/test-pip-install.sh"]
+
+

@@ -1,0 +1,20 @@
+[Unit]
+Description=Webcam Capture Service for LFAS Aerodrome
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+User=pi
+Environment="CONFIG_PATH=/etc/aero-pi-cam/config.yaml"
+ExecStart=/usr/bin/webcam
+TimeoutStopSec=120
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aero-pi-cam
+
+[Install]
+WantedBy=multi-user.target

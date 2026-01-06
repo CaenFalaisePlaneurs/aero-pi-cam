@@ -1,0 +1,6 @@
+include README.md
+include LICENSE
+include config.example.yaml
+include deploy/aero-pi-cam.service
+recursive-include aero_pi_cam/assets *.svg
+

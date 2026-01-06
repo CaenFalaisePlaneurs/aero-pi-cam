@@ -5,16 +5,17 @@ All tests use UTC timezone for aeronautical compliance.
 
 from datetime import UTC, datetime
 
-from src.config import LocationConfig
-from src.sun import get_next_capture_interval, get_sun_times, is_day
+from aero_pi_cam.core.config import LocationConfig
+from aero_pi_cam.weather.sun import get_next_capture_interval, get_sun_times, is_day
 
 
 def test_get_sun_times() -> None:
     """Test that get_sun_times returns sunrise and sunset."""
     location: LocationConfig = LocationConfig(
-        name="LFAS",
-        latitude=48.9267952,
-        longitude=-0.1477169,
+        name="TEST",
+        latitude=48.9,
+        longitude=-0.1,
+        camera_heading="060° RWY 06",
     )
 
     date = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)  # Summer solstice UTC
@@ -30,9 +31,10 @@ def test_get_sun_times() -> None:
 def test_is_day_during_daytime() -> None:
     """Test is_day returns True during daytime in summer."""
     location: LocationConfig = LocationConfig(
-        name="LFAS",
-        latitude=48.9267952,
-        longitude=-0.1477169,
+        name="TEST",
+        latitude=48.9,
+        longitude=-0.1,
+        camera_heading="060° RWY 06",
     )
 
     # June 21, 2026 at noon UTC - definitely daytime in France
@@ -43,9 +45,10 @@ def test_is_day_during_daytime() -> None:
 def test_is_day_during_nighttime() -> None:
     """Test is_day returns False during nighttime."""
     location: LocationConfig = LocationConfig(
-        name="LFAS",
-        latitude=48.9267952,
-        longitude=-0.1477169,
+        name="TEST",
+        latitude=48.9,
+        longitude=-0.1,
+        camera_heading="060° RWY 06",
     )
 
     # January 2, 2026 at 3 AM UTC - definitely night in France
@@ -56,9 +59,10 @@ def test_is_day_during_nighttime() -> None:
 def test_is_day_at_midnight() -> None:
     """Test is_day returns False at midnight."""
     location: LocationConfig = LocationConfig(
-        name="LFAS",
-        latitude=48.9267952,
-        longitude=-0.1477169,
+        name="TEST",
+        latitude=48.9,
+        longitude=-0.1,
+        camera_heading="060° RWY 06",
     )
 
     midnight = datetime(2026, 6, 21, 0, 0, 0, tzinfo=UTC)
@@ -68,9 +72,10 @@ def test_is_day_at_midnight() -> None:
 def test_get_next_capture_interval_day() -> None:
     """Test get_next_capture_interval returns day interval during daytime."""
     location: LocationConfig = LocationConfig(
-        name="LFAS",
-        latitude=48.9267952,
-        longitude=-0.1477169,
+        name="TEST",
+        latitude=48.9,
+        longitude=-0.1,
+        camera_heading="060° RWY 06",
     )
 
     day_interval = 5
@@ -84,9 +89,10 @@ def test_get_next_capture_interval_day() -> None:
 def test_get_next_capture_interval_night() -> None:
     """Test get_next_capture_interval returns night interval during nighttime."""
     location: LocationConfig = LocationConfig(
-        name="LFAS",
-        latitude=48.9267952,
-        longitude=-0.1477169,
+        name="TEST",
+        latitude=48.9,
+        longitude=-0.1,
+        camera_heading="060° RWY 06",
     )
 
     day_interval = 5
@@ -100,9 +106,10 @@ def test_get_next_capture_interval_night() -> None:
 def test_get_sun_times_with_naive_datetime() -> None:
     """Test get_sun_times handles naive datetime (assumes UTC)."""
     location: LocationConfig = LocationConfig(
-        name="LFAS",
-        latitude=48.9267952,
-        longitude=-0.1477169,
+        name="TEST",
+        latitude=48.9,
+        longitude=-0.1,
+        camera_heading="060° RWY 06",
     )
 
     # Naive datetime (no timezone)
@@ -120,9 +127,10 @@ def test_get_sun_times_with_non_utc_timezone() -> None:
     from datetime import timedelta, timezone
 
     location: LocationConfig = LocationConfig(
-        name="LFAS",
-        latitude=48.9267952,
-        longitude=-0.1477169,
+        name="TEST",
+        latitude=48.9,
+        longitude=-0.1,
+        camera_heading="060° RWY 06",
     )
 
     # Date with non-UTC timezone (e.g., EST = UTC-5)
@@ -143,9 +151,10 @@ def test_get_sun_times_sunrise_non_utc() -> None:
     from unittest.mock import patch
 
     location: LocationConfig = LocationConfig(
-        name="LFAS",
-        latitude=48.9267952,
-        longitude=-0.1477169,
+        name="TEST",
+        latitude=48.9,
+        longitude=-0.1,
+        camera_heading="060° RWY 06",
     )
 
     date = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)
@@ -155,7 +164,10 @@ def test_get_sun_times_sunrise_non_utc() -> None:
     mock_sunrise = datetime(2026, 6, 21, 7, 0, 0, tzinfo=est)
     mock_sunset = datetime(2026, 6, 21, 17, 0, 0, tzinfo=est)
 
-    with patch("src.sun.get_times", return_value={"sunrise": mock_sunrise, "sunset": mock_sunset}):
+    with patch(
+        "aero_pi_cam.weather.sun.get_times",
+        return_value={"sunrise": mock_sunrise, "sunset": mock_sunset},
+    ):
         times = get_sun_times(date, location)
 
     assert times["sunrise"].tzinfo == UTC
@@ -168,9 +180,10 @@ def test_get_sun_times_sunset_non_utc() -> None:
     from unittest.mock import patch
 
     location: LocationConfig = LocationConfig(
-        name="LFAS",
-        latitude=48.9267952,
-        longitude=-0.1477169,
+        name="TEST",
+        latitude=48.9,
+        longitude=-0.1,
+        camera_heading="060° RWY 06",
     )
 
     date = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)
@@ -180,7 +193,10 @@ def test_get_sun_times_sunset_non_utc() -> None:
     mock_sunrise = datetime(2026, 6, 21, 7, 0, 0, tzinfo=UTC)
     mock_sunset = datetime(2026, 6, 21, 17, 0, 0, tzinfo=est)
 
-    with patch("src.sun.get_times", return_value={"sunrise": mock_sunrise, "sunset": mock_sunset}):
+    with patch(
+        "aero_pi_cam.weather.sun.get_times",
+        return_value={"sunrise": mock_sunrise, "sunset": mock_sunset},
+    ):
         times = get_sun_times(date, location)
 
     assert times["sunset"].tzinfo == UTC

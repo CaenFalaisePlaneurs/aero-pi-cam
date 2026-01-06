@@ -11,14 +11,34 @@ camera:
 
 location:
   # Camera location ICAO code
-  name: "LFAS"
-  latitude: 48.9267952
-  longitude: -0.1477169
+  name: "LFAS"  # Your airfield ICAO code (e.g., "LFAS")
+  latitude: 48.9  # Your camera latitude
+  longitude: -0.1  # Your camera longitude
+  camera_heading: "060° RWY 06"  # Camera heading/direction (e.g., "060° RWY 06")
   # Note: All times are calculated and stored in UTC (aeronautical requirement)
 
 schedule:
-  day_interval_minutes: 5
-  night_interval_minutes: 60
+  day_interval_seconds: 300  # 5 minutes
+  night_interval_seconds: 3600  # 60 minutes
+
+# Upload configuration
+upload:
+  method: "API"  # Choose between "API" or "SFTP"
+  # API upload configuration (required when method is "API")
+  api:
+    # API endpoint URL (optional - if not set, dummy server will be used in debug mode)
+    # url: "https://api.example.com/api/webcam/image"
+    key: "secret-api-key"
+    timeout_seconds: 30
+  # SFTP upload configuration (required when method is "SFTP")
+# sftp:
+#   host: "your-sftp-host-here"  # Required, no default
+#   port: 22  # Required, no default
+#   user: "your-user-name-here"  # Required, no default
+#   password: "your-password-here"  # Required, no default
+#   remote_path: "/remote/path"  # Required, no default (e.g., "/public_html/cam/" or "/home/username/www/")
+#   timeout_seconds: 30  # Required, no default
+#   image_base_url: "http(s)://your-image-server-domain.com"  # Optional: Primary image server domain for image URLs in JSON metadata. If not set, image URLs will be relative paths.
 
 # Debug mode (for development/testing only)
 # Enable via DEBUG_MODE environment variable (DEBUG_MODE=true)
@@ -27,19 +47,15 @@ debug:
   day_interval_seconds: 10   # 10 seconds during day
   night_interval_seconds: 30  # 30 seconds during night
 
-api:
-  url: "https://api.example.com/api/webcam/image"
-  key: "secret-api-key"
-  timeout_seconds: 30
-
 # Overlay configuration
 overlay:
   provider_name: "My Airfield - cam"
-  provider_logo: "images/logo.svg"  # User-configured logo in images/ directory
+  provider_logo: "~/images/logo.svg"  # Path to logo (PNG or SVG). Supports absolute paths, ~ expansion (e.g., ~/images/logo.png), or relative paths.
   logo_size: 72  # Logo size in pixels
   camera_name: "hangar 1"
   font_color: "white"
   font_size: 16
+  font_path: null  # Optional: path to custom font file (e.g., ~/fonts/Poppins-Medium.ttf). Supports ~ expansion for home directory. If null or not found, uses system font.
   sun_icon_size: 24  # Sunrise/sunset icon size in pixels
   line_spacing: 4  # Line spacing in pixels between overlay elements
   padding: 15  # Padding in pixels from image borders
@@ -55,4 +71,12 @@ metar:
   icao_code: "XXXX"                    # Nearest reporting airport ICAO code
   api_url: "https://aviationweather.gov/api/data/metar"  # METAR API base URL
   raw_metar_enabled: true              # Show raw METAR text block
+
+# Metadata configuration for EXIF and XMP embedding
+metadata:
+  github_repo: "https://github.com/CaenFalaisePlaneurs/aero-pi-cam"  # GitHub repository URL
+  webcam_url: "https://caenfalaiseplaneurs.fr/cam"  # Web page URL for viewing webcam images (advertising/promotional URL, not the image server domain)
+  license: "CC BY-SA 4.0"  # License identifier
+  license_url: "https://creativecommons.org/licenses/by-sa/4.0/"  # License URL
+  license_mark: "This work is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/"  # Short license attribution
 

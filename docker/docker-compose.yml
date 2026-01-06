@@ -1,0 +1,61 @@
+# Docker Compose file for aero-pi-cam
+# Note: version field is obsolete in Docker Compose v2+, but kept for compatibility
+
+services:
+  aero-pi-cam:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: aero-pi-cam
+    restart: unless-stopped
+    
+    # Environment variables
+    environment:
+      - CONFIG_PATH=/opt/webcam-cfp/config.yaml
+      - PYTHONUNBUFFERED=1
+      - DEBUG_LOG_PATH=/opt/webcam-cfp/.cursor/debug.log
+      - DEBUG_MODE=${DEBUG_MODE:-false}  # Set to 'true' to use dummy API server (saves images to .debug/cam/)
+    
+    # Mount config file for easy editing (read-only in container)
+    # IMPORTANT: Create config.yaml at project root first: cp config.example.yaml config.yaml
+    # If config.yaml doesn't exist, Docker will create a directory (not a file) and the app will fail
+    volumes:
+      - ../config.yaml:/opt/webcam-cfp/config.yaml:ro
+      - ../.cursor:/opt/webcam-cfp/.cursor:rw  # Mount debug log directory
+      - ../.debug:/opt/webcam-cfp/.debug:rw  # Mount debug folder (dummy API saves images to .debug/cam/ in debug mode)
+      # Mount source code for development (optional)
+      # - ./src:/opt/webcam-cfp/src:ro
+    
+    # Network mode (host allows access to local network devices like cameras)
+    # Use 'host' if you need to access RTSP camera on local network
+    # With host networking, dummy API server (port 8000) is accessible on localhost:8000
+    network_mode: host
+    # Alternative: bridge mode with port mapping (if needed in future)
+    # ports:
+    #   - "8000:8000"  # Dummy API server port (when DEBUG_MODE=true or api.url not set)
+    #   - "8080:8080"
+    
+    # Resource limits (optional - adjust for your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Health check (optional - uncomment if needed)
+    # healthcheck:
+    #   test: ["CMD", "venv/bin/python", "-c", "from aero_pi_cam.core.config import load_config; load_config()"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 5s

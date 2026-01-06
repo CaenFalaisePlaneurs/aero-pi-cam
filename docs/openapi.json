@@ -1,0 +1,267 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Webcam Image Upload API",
+    "description": "API for uploading webcam images with metadata",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com",
+      "description": "Production server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/webcam/image": {
+      "put": {
+        "summary": "Upload webcam image",
+        "description": "Upload a JPEG image captured from a webcam with associated metadata",
+        "operationId": "uploadImage",
+        "tags": ["images"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              },
+              "description": "JPEG image binary data"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Capture-Timestamp",
+            "in": "header",
+            "required": true,
+            "description": "ISO 8601 timestamp of image capture in UTC (e.g., 2026-01-03T00:53:46Z)",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+              "example": "2026-01-03T00:53:46Z"
+            }
+          },
+          {
+            "name": "X-Location",
+            "in": "header",
+            "required": true,
+            "description": "Location identifier where the image was captured",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "LFAS"
+            }
+          },
+          {
+            "name": "X-Is-Day",
+            "in": "header",
+            "required": true,
+            "description": "Whether the image was captured during daylight hours",
+            "schema": {
+              "type": "string",
+              "enum": ["True", "False"],
+              "example": "True"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Image successfully uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                },
+                "example": {
+                  "id": "img_1234567890",
+                  "received_at": "2026-01-03T00:53:46Z",
+                  "size_bytes": 245760
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid image data or missing required headers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid image format or missing required headers"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid or missing authentication token"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Insufficient permissions to upload images"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large - image exceeds maximum size",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Image size exceeds maximum allowed size"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests - rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Rate limit exceeded. Please retry after some time"
+                }
+              },
+              "headers": {
+                "Retry-After": {
+                  "description": "Number of seconds to wait before retrying",
+                  "schema": {
+                    "type": "integer",
+                    "example": 60
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Internal server error occurred while processing the image"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Bad gateway - upstream service unavailable"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Service temporarily unavailable"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway timeout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Gateway timeout - request took too long to process"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Bearer token authentication. Provide the API key as: 'Bearer {your-api-key}'"
+      }
+    },
+    "schemas": {
+      "UploadResponse": {
+        "type": "object",
+        "required": ["id", "received_at", "size_bytes"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the uploaded image",
+            "example": "img_1234567890"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the image was received by the server",
+            "example": "2026-01-03T00:53:46Z"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "description": "Size of the uploaded image in bytes",
+            "minimum": 0,
+            "example": 245760
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message describing what went wrong",
+            "example": "Invalid image format or missing required headers"
+          }
+        }
+      }
+    }
+  }
+}
+

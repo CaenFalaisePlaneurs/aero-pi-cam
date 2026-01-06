@@ -3,7 +3,7 @@
 import subprocess
 from unittest.mock import MagicMock
 
-from src.capture import capture_frame, reset_subprocess_run, set_subprocess_run
+from aero_pi_cam.capture.capture import capture_frame, reset_subprocess_run, set_subprocess_run
 
 
 def test_capture_success() -> None:

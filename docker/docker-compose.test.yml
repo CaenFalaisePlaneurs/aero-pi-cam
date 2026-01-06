@@ -1,0 +1,17 @@
+# Docker Compose file for testing pip package installation
+
+services:
+  test-pip-install:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    container_name: aero-pi-cam-test
+    # Run as root to test systemd service installation (though systemd won't work in Docker)
+    user: root
+    # Remove after test completes
+    restart: "no"
+    # Capture output
+    stdin_open: true
+    tty: true
+
+
