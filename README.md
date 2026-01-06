@@ -7,12 +7,16 @@ A Python 3.13 background service for Raspberry Pi that captures images from an I
 ## Features
 
 - **Scheduled capture**: Different intervals for day and night based on sunrise/sunset
-- **RTSP capture**: Reliable frame grabbing via ffmpeg with VIGI camera authentication support
+- **RTSP capture**: Reliable frame grabbing via ffmpeg with authentication support (works with any RTSP camera, including VIGI)
 - **Multiple upload methods**: API (PUT requests with retry logic) or SFTP upload
-- **METAR overlay**: Optional weather information overlay from Aviation Weather API
-- **Icon support**: Add SVG icons to overlay (URL, local file, or inline)
+- **METAR/TAF overlay**: Optional weather information overlay from Aviation Weather API (METAR and TAF data)
+- **Provider logo**: Add provider logo to overlay (PNG or SVG format, supports absolute paths and ~ expansion)
+- **Custom fonts**: Use custom fonts for overlay text (e.g., Poppins) with fallback to system fonts
+- **Built-in icons**: Sunrise, sunset, and compass icons included in overlay
 - **EXIF metadata**: Automatic embedding of camera info, GPS coordinates, METAR/TAF data, and license information in JPEG images
 - **XMP metadata**: Custom XMP schema with all metadata duplicated for maximum compatibility
+- **SFTP metadata JSON**: Automatic generation of JSON metadata files alongside images for SFTP uploads (includes TTL, timestamps, METAR/TAF data)
+- **Dual image upload**: SFTP can upload both images with and without METAR overlay
 - **Debug mode**: Uses dummy API server for testing (saves images locally, no external API needed)
 - **Systemd service**: Auto-start, auto-restart, journald logging
 
