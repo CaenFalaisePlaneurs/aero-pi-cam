@@ -85,13 +85,30 @@ async def capture_and_upload(
         time_str = capture_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         mode_str = "day" if is_day_time else "night"
 
+        # Get current interval based on mode and debug settings
+        if _is_debug_mode():
+            if config.debug:
+                interval_seconds = (
+                    config.debug.day_interval_seconds
+                    if is_day_time
+                    else config.debug.night_interval_seconds
+                )
+            else:
+                interval_seconds = 10 if is_day_time else 30
+        else:
+            interval_seconds = (
+                config.schedule.day_interval_seconds
+                if is_day_time
+                else config.schedule.night_interval_seconds
+            )
+
         # Get sunrise and sunset times for the day
         sun_times = get_sun_times(capture_time, config.location)
         sunrise_str = sun_times["sunrise"].strftime("%H:%M:%SZ")
         sunset_str = sun_times["sunset"].strftime("%H:%M:%SZ")
 
         print(
-            f"Captured image at {time_str} ({mode_str} mode) - Day: {sunrise_str} to {sunset_str}",
+            f"Captured image at {time_str} ({mode_str} mode - {interval_seconds}s) - Day: {sunrise_str} to {sunset_str}",
             flush=True,
         )
         image_bytes = result.image

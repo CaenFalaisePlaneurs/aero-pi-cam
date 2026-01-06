@@ -93,6 +93,9 @@ export CONFIG_PATH=config.yaml
 # Optional: enable debug mode to use dummy API server
 export DEBUG_MODE=true
 
+# Optional: force day or night mode (for testing)
+export DEBUG_DAY_NIGHT_MODE=day  # or "night"
+
 # Run the app
 python -m aero_pi_cam.core.main
 ```

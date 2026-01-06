@@ -1,9 +1,13 @@
 """Tests for scheduler module."""
 
-from unittest.mock import AsyncMock
+import os
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.date import DateTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 from aero_pi_cam.core.config import (
     ApiConfig,
@@ -16,7 +20,11 @@ from aero_pi_cam.core.config import (
     ScheduleConfig,
     UploadConfig,
 )
-from aero_pi_cam.core.scheduler import log_countdown, schedule_next_capture
+from aero_pi_cam.core.scheduler import (
+    get_next_transition_time,
+    log_countdown,
+    schedule_next_capture,
+)
 
 
 @pytest.fixture
@@ -76,3 +84,229 @@ async def test_schedule_next_capture_uses_existing_scheduler(mock_config) -> Non
         assert scheduler is existing_scheduler
     finally:
         existing_scheduler.shutdown(wait=False)
+
+
+def test_get_next_transition_time_returns_sunset_when_day(mock_config) -> None:
+    """Test get_next_transition_time returns sunset when currently day."""
+    # Mock daytime (noon)
+    now = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)
+    mock_sunrise = datetime(2026, 6, 21, 6, 0, 0, tzinfo=UTC)
+    mock_sunset = datetime(2026, 6, 21, 18, 0, 0, tzinfo=UTC)
+
+    with (
+        patch("aero_pi_cam.core.scheduler.get_day_night_mode", return_value=True),
+        patch(
+            "aero_pi_cam.core.scheduler.get_sun_times",
+            return_value={"sunrise": mock_sunrise, "sunset": mock_sunset},
+        ),
+    ):
+        transition = get_next_transition_time(now, mock_config)
+
+    assert transition is not None
+    assert transition == mock_sunset
+
+
+def test_get_next_transition_time_returns_sunrise_when_night(mock_config) -> None:
+    """Test get_next_transition_time returns sunrise when currently night."""
+    # Mock nighttime (midnight)
+    now = datetime(2026, 6, 21, 0, 0, 0, tzinfo=UTC)
+    mock_sunrise = datetime(2026, 6, 21, 6, 0, 0, tzinfo=UTC)
+    mock_sunset = datetime(2026, 6, 21, 18, 0, 0, tzinfo=UTC)
+
+    with (
+        patch("aero_pi_cam.core.scheduler.get_day_night_mode", return_value=False),
+        patch(
+            "aero_pi_cam.core.scheduler.get_sun_times",
+            return_value={"sunrise": mock_sunrise, "sunset": mock_sunset},
+        ),
+    ):
+        transition = get_next_transition_time(now, mock_config)
+
+    assert transition is not None
+    assert transition == mock_sunrise
+
+
+def test_get_next_transition_time_returns_none_in_debug_mode(mock_config) -> None:
+    """Test get_next_transition_time returns None when debug mode is enabled."""
+    now = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)
+
+    with patch.dict(os.environ, {"DEBUG_MODE": "true"}):
+        transition = get_next_transition_time(now, mock_config)
+
+    assert transition is None
+
+
+def test_get_next_transition_time_handles_past_sunset(mock_config) -> None:
+    """Test get_next_transition_time gets tomorrow's sunset when today's already passed."""
+    # Mock evening (after sunset)
+    now = datetime(2026, 6, 21, 20, 0, 0, tzinfo=UTC)
+    mock_sunrise_today = datetime(2026, 6, 21, 6, 0, 0, tzinfo=UTC)
+    mock_sunset_today = datetime(2026, 6, 21, 18, 0, 0, tzinfo=UTC)
+    mock_sunset_tomorrow = datetime(2026, 6, 22, 18, 0, 0, tzinfo=UTC)
+
+    def mock_get_sun_times(date: datetime, location: LocationConfig) -> dict[str, datetime]:
+        if date.day == 21:
+            return {"sunrise": mock_sunrise_today, "sunset": mock_sunset_today}
+        return {
+            "sunrise": datetime(2026, 6, 22, 6, 0, 0, tzinfo=UTC),
+            "sunset": mock_sunset_tomorrow,
+        }
+
+    with (
+        patch("aero_pi_cam.core.scheduler.get_day_night_mode", return_value=True),
+        patch("aero_pi_cam.core.scheduler.get_sun_times", side_effect=mock_get_sun_times),
+    ):
+        transition = get_next_transition_time(now, mock_config)
+
+    assert transition is not None
+    assert transition == mock_sunset_tomorrow
+
+
+def test_get_next_transition_time_handles_past_sunrise(mock_config) -> None:
+    """Test get_next_transition_time gets tomorrow's sunrise when today's already passed."""
+    # Mock late night (after midnight, before sunrise)
+    now = datetime(2026, 6, 21, 2, 0, 0, tzinfo=UTC)
+    mock_sunrise_today = datetime(2026, 6, 21, 6, 0, 0, tzinfo=UTC)
+    mock_sunset_today = datetime(2026, 6, 21, 18, 0, 0, tzinfo=UTC)
+    mock_sunrise_tomorrow = datetime(2026, 6, 22, 6, 0, 0, tzinfo=UTC)
+
+    def mock_get_sun_times(date: datetime, location: LocationConfig) -> dict[str, datetime]:
+        if date.day == 21:
+            return {"sunrise": mock_sunrise_today, "sunset": mock_sunset_today}
+        return {
+            "sunrise": mock_sunrise_tomorrow,
+            "sunset": datetime(2026, 6, 22, 18, 0, 0, tzinfo=UTC),
+        }
+
+    with (
+        patch("aero_pi_cam.core.scheduler.get_day_night_mode", return_value=False),
+        patch("aero_pi_cam.core.scheduler.get_sun_times", side_effect=mock_get_sun_times),
+    ):
+        transition = get_next_transition_time(now, mock_config)
+
+    assert transition is not None
+    assert (
+        transition == mock_sunrise_today
+    )  # Today's sunrise hasn't passed yet (it's 2 AM, sunrise is 6 AM)
+
+
+def test_get_next_transition_time_returns_none_when_config_none() -> None:
+    """Test get_next_transition_time returns None when config is None."""
+    now = datetime(2026, 6, 21, 12, 0, 0, tzinfo=UTC)
+    transition = get_next_transition_time(now, None)
+    assert transition is None
+
+
+@pytest.mark.asyncio
+async def test_schedule_next_capture_uses_transition_when_sooner(mock_config) -> None:
+    """Test schedule_next_capture uses DateTrigger when transition time is sooner than interval."""
+    # Current time: 7:30 AM, transition at 8:00 AM is sooner than interval-based time (7:30 + 5 min = 7:35)
+    # But wait, day interval is 5 min, so 7:30 + 5 min = 7:35, which is sooner than 8:00
+    # Let's use night mode instead: 7:30 AM (night), transition at 8:00 AM, interval is 1 hour (8:30)
+    now = datetime(2026, 6, 21, 7, 30, 0, tzinfo=UTC)
+    mock_transition = datetime(
+        2026, 6, 21, 8, 0, 0, tzinfo=UTC
+    )  # 8:00 AM - sooner than 7:30 + 1 hour = 8:30
+
+    capture_func = AsyncMock()
+    schedule_func = AsyncMock()
+
+    with (
+        patch("aero_pi_cam.core.scheduler.datetime") as mock_dt,
+        patch("aero_pi_cam.core.scheduler.get_next_transition_time", return_value=mock_transition),
+        patch("aero_pi_cam.core.scheduler.get_day_night_mode", return_value=False),
+    ):  # Night mode
+        # Mock datetime.now to return fixed time
+        import datetime as real_dt
+
+        mock_dt.now = lambda tz=UTC: now
+        mock_dt.UTC = UTC
+        mock_dt.timedelta = real_dt.timedelta
+        mock_dt.datetime = real_dt.datetime
+
+        scheduler = await schedule_next_capture(None, mock_config, capture_func, schedule_func)
+
+        job = scheduler.get_job("capture_job")
+        assert job is not None
+        assert isinstance(job.trigger, DateTrigger)
+        assert job.trigger.run_date == mock_transition
+
+    scheduler.shutdown(wait=False)
+
+
+@pytest.mark.asyncio
+async def test_schedule_next_capture_uses_interval_when_sooner(mock_config) -> None:
+    """Test schedule_next_capture uses IntervalTrigger when interval time is sooner than transition."""
+    # Transition at 8 PM is later than interval-based time (noon + 5 min = 12:05)
+    mock_transition = datetime(2026, 6, 21, 20, 0, 0, tzinfo=UTC)
+
+    capture_func = AsyncMock()
+
+    with (
+        patch("aero_pi_cam.core.scheduler.get_next_transition_time", return_value=mock_transition),
+        patch("aero_pi_cam.core.scheduler.get_day_night_mode", return_value=True),
+    ):
+        scheduler = await schedule_next_capture(None, mock_config, capture_func)
+
+        job = scheduler.get_job("capture_job")
+        assert job is not None
+        assert isinstance(job.trigger, IntervalTrigger)
+        assert job.trigger.interval.total_seconds() == 300  # 5 minutes
+
+    scheduler.shutdown(wait=False)
+
+
+@pytest.mark.asyncio
+async def test_schedule_next_capture_skips_transition_in_debug_mode(mock_config) -> None:
+    """Test schedule_next_capture skips transition check in debug mode."""
+    capture_func = AsyncMock()
+
+    with (
+        patch.dict(os.environ, {"DEBUG_MODE": "true"}),
+        patch("aero_pi_cam.core.scheduler.get_day_night_mode", return_value=True),
+    ):
+        scheduler = await schedule_next_capture(None, mock_config, capture_func)
+
+        job = scheduler.get_job("capture_job")
+        assert job is not None
+        assert isinstance(job.trigger, IntervalTrigger)  # Should use interval, not DateTrigger
+
+    scheduler.shutdown(wait=False)
+
+
+@pytest.mark.asyncio
+async def test_transition_capture_calls_both_functions(mock_config) -> None:
+    """Test that transition capture calls capture_and_upload_func then schedule_func."""
+    # Current time: 7:30 AM (night), transition at 8:00 AM is sooner than interval-based time (7:30 + 1 hour = 8:30)
+    now = datetime(2026, 6, 21, 7, 30, 0, tzinfo=UTC)
+    mock_transition = datetime(2026, 6, 21, 8, 0, 0, tzinfo=UTC)
+
+    capture_func = AsyncMock()
+    schedule_func = AsyncMock()
+
+    with (
+        patch("aero_pi_cam.core.scheduler.datetime") as mock_dt,
+        patch("aero_pi_cam.core.scheduler.get_next_transition_time", return_value=mock_transition),
+        patch("aero_pi_cam.core.scheduler.get_day_night_mode", return_value=False),
+    ):  # Night mode
+        # Mock datetime.now to return fixed time
+        import datetime as real_dt
+
+        mock_dt.now = lambda tz=UTC: now
+        mock_dt.UTC = UTC
+        mock_dt.timedelta = real_dt.timedelta
+        mock_dt.datetime = real_dt.datetime
+
+        scheduler = await schedule_next_capture(None, mock_config, capture_func, schedule_func)
+
+        job = scheduler.get_job("capture_job")
+        assert job is not None
+
+        # Execute the job (transition wrapper)
+        await job.func()
+
+        # Verify both functions were called
+        capture_func.assert_called_once()
+        schedule_func.assert_called_once()
+
+    scheduler.shutdown(wait=False)

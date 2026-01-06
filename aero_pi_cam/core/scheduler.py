@@ -2,14 +2,64 @@
 
 import os
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from ..weather.day_night import get_day_night_mode
+from ..weather.sun import get_sun_times
 from .config import Config
 from .debug import debug_print
+
+
+def get_next_transition_time(now: datetime, config: Config | None) -> datetime | None:
+    """Get the next day/night transition time.
+
+    Args:
+        now: Current UTC datetime
+        config: Configuration object
+
+    Returns:
+        Next transition time (UTC datetime) or None if debug mode or config is None
+        Returns sunrise if currently night, sunset if currently day
+    """
+    if config is None:
+        return None
+
+    # Skip transition checking in debug mode
+    debug_enabled = os.getenv("DEBUG_MODE", "false").lower() == "true"
+    if debug_enabled:
+        return None
+
+    # Determine if currently day or night
+    is_day_time = get_day_night_mode(now, config)
+
+    # Get sun times for today
+    sun_times = get_sun_times(now, config.location)
+    sunrise = sun_times["sunrise"]
+    sunset = sun_times["sunset"]
+
+    # Get next transition: sunrise if night, sunset if day
+    if is_day_time:
+        # Currently day, next transition is sunset
+        next_transition = sunset
+        # If sunset already passed today, get tomorrow's sunset
+        if sunset <= now:
+            tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+            sun_times_tomorrow = get_sun_times(tomorrow, config.location)
+            next_transition = sun_times_tomorrow["sunset"]
+    else:
+        # Currently night, next transition is sunrise
+        next_transition = sunrise
+        # If sunrise already passed today, get tomorrow's sunrise
+        if sunrise <= now:
+            tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+            sun_times_tomorrow = get_sun_times(tomorrow, config.location)
+            next_transition = sun_times_tomorrow["sunrise"]
+
+    return next_transition
 
 
 async def log_countdown(scheduler: AsyncIOScheduler | None, config: Config | None) -> None:
@@ -182,6 +232,18 @@ async def schedule_next_capture(
         timer_str = f"{hours}:{minutes:02d}:{seconds:02d}"
         debug_print(f"Schedule mode: {mode_str}, capture timer: {timer_str}")
 
+        # Calculate next capture time using current interval
+        next_capture_time = now + timedelta(seconds=interval_seconds)
+
+        # Get next transition time (returns None in debug mode or if config is None)
+        next_transition_time = get_next_transition_time(now, config)
+
+        # Determine which is sooner: transition time or interval-based time
+        use_transition = False
+        if next_transition_time is not None and next_transition_time < next_capture_time:
+            use_transition = True
+            next_capture_time = next_transition_time
+
         # Update or create scheduler
         if scheduler is None:
             scheduler = AsyncIOScheduler()
@@ -201,14 +263,30 @@ async def schedule_next_capture(
             except Exception:
                 pass
 
-        scheduler.add_job(
-            capture_and_upload_func,
-            trigger=IntervalTrigger(seconds=interval_seconds),
-            id="capture_job",
-            max_instances=1,  # Prevent concurrent executions
-            coalesce=True,  # Run at most once if multiple runs are missed
-            misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
-        )
+        # Schedule capture job
+        if use_transition:
+            # Create wrapper that calls capture_and_upload_func then schedule_func
+            async def _transition_capture_wrapper() -> None:
+                await capture_and_upload_func()
+                if schedule_func:
+                    await schedule_func()
+
+            scheduler.add_job(
+                _transition_capture_wrapper,
+                trigger=DateTrigger(run_date=next_capture_time),
+                id="capture_job",
+                max_instances=1,  # Prevent concurrent executions
+                misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
+            )
+        else:
+            scheduler.add_job(
+                capture_and_upload_func,
+                trigger=IntervalTrigger(seconds=interval_seconds),
+                id="capture_job",
+                max_instances=1,  # Prevent concurrent executions
+                coalesce=True,  # Run at most once if multiple runs are missed
+                misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
+            )
 
         # Re-evaluate schedule every 5 minutes for day/night transitions
         if schedule_func:
