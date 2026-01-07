@@ -278,54 +278,106 @@ async def schedule_next_capture(
             _configure_scheduler_logger()
             scheduler = AsyncIOScheduler()
             scheduler.start()
+
+            # Schedule capture job
+            if use_transition:
+                # Create wrapper that calls capture_and_upload_func then schedule_func
+                async def _transition_capture_wrapper() -> None:
+                    await capture_and_upload_func()
+                    if schedule_func:
+                        await schedule_func()
+
+                scheduler.add_job(
+                    _transition_capture_wrapper,
+                    trigger=DateTrigger(run_date=next_capture_time),
+                    id="capture_job",
+                    max_instances=1,  # Prevent concurrent executions
+                    misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
+                )
+            else:
+                scheduler.add_job(
+                    capture_and_upload_func,
+                    trigger=IntervalTrigger(seconds=interval_seconds),
+                    id="capture_job",
+                    max_instances=1,  # Prevent concurrent executions
+                    coalesce=True,  # Run at most once if multiple runs are missed
+                    misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
+                )
+
+            # Add schedule_check job on first run
+            if schedule_func:
+                scheduler.add_job(
+                    schedule_func,
+                    trigger=IntervalTrigger(minutes=5),
+                    id="schedule_check",
+                    coalesce=True,  # Run at most once if multiple runs are missed
+                    misfire_grace_time=300,  # Ignore missed runs if more than 5 minutes late
+                )
         else:
-            # Remove existing jobs if they exist
-            try:
-                scheduler.remove_job("capture_job")
-            except Exception:
-                pass
-            try:
-                scheduler.remove_job("schedule_check")
-            except Exception:
-                pass
-            try:
-                scheduler.remove_job("countdown_log")
-            except Exception:
-                pass
+            # Check if we need to reschedule the capture job
+            existing_job = scheduler.get_job("capture_job")
+            needs_reschedule = False
 
-        # Schedule capture job
-        if use_transition:
-            # Create wrapper that calls capture_and_upload_func then schedule_func
-            async def _transition_capture_wrapper() -> None:
-                await capture_and_upload_func()
-                if schedule_func:
-                    await schedule_func()
+            if existing_job is None:
+                # No existing job, need to create one
+                needs_reschedule = True
+            elif use_transition:
+                # Need to use DateTrigger - check if current job is already using DateTrigger
+                if not isinstance(existing_job.trigger, DateTrigger):
+                    needs_reschedule = True
+                # If already using DateTrigger, check if the run_date is different
+                # Use a small tolerance (1 second) to avoid unnecessary rescheduling due to timing precision
+                elif abs((existing_job.trigger.run_date - next_capture_time).total_seconds()) > 1:
+                    needs_reschedule = True
+            else:
+                # Need to use IntervalTrigger - check if current job is using IntervalTrigger with same interval
+                if not isinstance(existing_job.trigger, IntervalTrigger):
+                    needs_reschedule = True
+                elif existing_job.trigger.interval.total_seconds() != interval_seconds:
+                    needs_reschedule = True
 
-            scheduler.add_job(
-                _transition_capture_wrapper,
-                trigger=DateTrigger(run_date=next_capture_time),
-                id="capture_job",
-                max_instances=1,  # Prevent concurrent executions
-                misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
-            )
-        else:
-            scheduler.add_job(
-                capture_and_upload_func,
-                trigger=IntervalTrigger(seconds=interval_seconds),
-                id="capture_job",
-                max_instances=1,  # Prevent concurrent executions
-                coalesce=True,  # Run at most once if multiple runs are missed
-                misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
-            )
+            if needs_reschedule:
+                # Remove existing capture job only (keep schedule_check running)
+                try:
+                    scheduler.remove_job("capture_job")
+                except Exception:
+                    pass
 
-        # Re-evaluate schedule every 5 minutes for day/night transitions
-        if schedule_func:
-            scheduler.add_job(
-                schedule_func,
-                trigger=IntervalTrigger(minutes=5),
-                id="schedule_check",
-                coalesce=True,  # Run at most once if multiple runs are missed
-                misfire_grace_time=300,  # Ignore missed runs if more than 5 minutes late
-            )
+                # Schedule capture job with new settings
+                if use_transition:
+                    # Create wrapper that calls capture_and_upload_func then schedule_func
+                    async def _transition_capture_wrapper() -> None:
+                        await capture_and_upload_func()
+                        if schedule_func:
+                            await schedule_func()
+
+                    scheduler.add_job(
+                        _transition_capture_wrapper,
+                        trigger=DateTrigger(run_date=next_capture_time),
+                        id="capture_job",
+                        max_instances=1,  # Prevent concurrent executions
+                        misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
+                    )
+                else:
+                    scheduler.add_job(
+                        capture_and_upload_func,
+                        trigger=IntervalTrigger(seconds=interval_seconds),
+                        id="capture_job",
+                        max_instances=1,  # Prevent concurrent executions
+                        coalesce=True,  # Run at most once if multiple runs are missed
+                        misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
+                    )
+
+            # Ensure schedule_check job exists (in case it was removed somehow)
+            if schedule_func:
+                schedule_check_job = scheduler.get_job("schedule_check")
+                if schedule_check_job is None:
+                    scheduler.add_job(
+                        schedule_func,
+                        trigger=IntervalTrigger(minutes=5),
+                        id="schedule_check",
+                        coalesce=True,  # Run at most once if multiple runs are missed
+                        misfire_grace_time=300,  # Ignore missed runs if more than 5 minutes late
+                    )
 
     return scheduler
