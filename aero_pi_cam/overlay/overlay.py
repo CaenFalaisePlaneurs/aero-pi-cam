@@ -6,7 +6,7 @@ from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 
-import cairosvg
+import cairosvg  # type: ignore[import-untyped]
 from PIL import Image, ImageDraw, ImageFont
 
 from ..core.config import Config

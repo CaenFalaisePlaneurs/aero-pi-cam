@@ -26,7 +26,7 @@ def check_system_dependencies() -> tuple[bool, list[str]]:
 
     # Check cairo (try importing cairosvg to see if cairo library is available)
     try:
-        import cairosvg  # noqa: F401
+        import cairosvg  # type: ignore[import-untyped]  # noqa: F401
     except OSError as e:
         error_msg = str(e).lower()
         if "cairo" in error_msg or "libcairo" in error_msg or "no library called" in error_msg:

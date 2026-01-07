@@ -9,6 +9,9 @@ title: aero-pi-cam
 
 A Python 3.13 background service for Raspberry Pi that captures images from an IP camera via RTSP/ffmpeg on a day/night schedule and uploads them via API or SFTP.
 
+[![Quality Check](https://github.com/CaenFalaisePlaneurs/aero-pi-cam/actions/workflows/quality.yml/badge.svg)](https://github.com/CaenFalaisePlaneurs/aero-pi-cam/actions/workflows/quality.yml)
+[![pages-build-deployment](https://github.com/CaenFalaisePlaneurs/aero-pi-cam/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/CaenFalaisePlaneurs/aero-pi-cam/actions/workflows/pages/pages-build-deployment)
+
 ## Features
 
 - **Scheduled capture**: Different intervals for day and night based on sunrise/sunset
