@@ -310,3 +310,39 @@ async def test_transition_capture_calls_both_functions(mock_config) -> None:
         schedule_func.assert_called_once()
 
     scheduler.shutdown(wait=False)
+
+
+@pytest.mark.asyncio
+async def test_schedule_check_does_not_reset_interval_timer(mock_config) -> None:
+    """Test that schedule_check does not reset the timer for IntervalTrigger jobs.
+    
+    This test verifies the fix for the bug where schedule_check would reset the 
+    timer every 5 minutes, preventing long interval jobs (like 3600s) from ever running.
+    """
+    capture_func = AsyncMock()
+    schedule_func = AsyncMock()
+    
+    # Initial schedule - should use IntervalTrigger with 3600s interval (night mode)
+    with patch("aero_pi_cam.core.scheduler.get_day_night_mode", return_value=False):
+        scheduler = await schedule_next_capture(None, mock_config, capture_func, schedule_func)
+    
+    # Get the initial job and its next_run_time
+    job = scheduler.get_job("capture_job")
+    assert job is not None
+    assert isinstance(job.trigger, IntervalTrigger)
+    assert job.trigger.interval.total_seconds() == 3600
+    initial_next_run_time = job.next_run_time
+    
+    # Simulate schedule_check running (still in night mode, no transition needed)
+    with patch("aero_pi_cam.core.scheduler.get_day_night_mode", return_value=False):
+        scheduler = await schedule_next_capture(scheduler, mock_config, capture_func, schedule_func)
+    
+    # Verify the job still exists and its next_run_time hasn't changed
+    job_after = scheduler.get_job("capture_job")
+    assert job_after is not None
+    assert isinstance(job_after.trigger, IntervalTrigger)
+    assert job_after.trigger.interval.total_seconds() == 3600
+    # The next_run_time should be the same (job not rescheduled)
+    assert job_after.next_run_time == initial_next_run_time
+    
+    scheduler.shutdown(wait=False)
