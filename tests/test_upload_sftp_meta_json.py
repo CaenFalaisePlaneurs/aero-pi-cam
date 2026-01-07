@@ -318,6 +318,8 @@ def test_generate_metadata_json_all_fields_present() -> None:
     json_data = json.loads(json_bytes.decode("utf-8"))
 
     # Top-level fields
+    assert "software_version" in json_data
+    assert "software_source" in json_data
     assert "day_night_mode" in json_data
     assert "debug_mode" in json_data
     assert "last_update" in json_data
@@ -381,3 +383,39 @@ def test_generate_metadata_json_with_no_metar_path() -> None:
     image = json_data["images"][0]
     assert image["path"] == image_url
     assert image["no_metar_path"] == no_metar_image_url
+
+
+def test_generate_metadata_json_software_version_fields() -> None:
+    """Test that software version and source fields are present and correctly formatted."""
+    from aero_pi_cam import __version__
+    from aero_pi_cam.core.config import SftpConfig
+
+    sftp_config = SftpConfig(
+        host="test.example.com",
+        port=22,
+        user="testuser",
+        password="testpass",
+        remote_path="/test/path",
+        timeout_seconds=30,
+    )
+    config = _create_test_config(upload_method="SFTP", sftp_config=sftp_config)
+    metadata = {
+        "timestamp": "2026-01-02T15:30:00Z",
+        "location": "TEST",
+        "is_day": "true",
+    }
+    image_url = "https://test.com/TEST-test_camera.jpg"
+
+    json_bytes = generate_metadata_json(metadata, config, image_url)
+    json_data = json.loads(json_bytes.decode("utf-8"))
+
+    # Check software version field
+    assert "software_version" in json_data
+    assert json_data["software_version"] == f"aero-pi-cam {__version__}"
+    assert json_data["software_version"].startswith("aero-pi-cam ")
+
+    # Check software source field
+    assert "software_source" in json_data
+    assert json_data["software_source"] == f"https://github.com/CaenFalaisePlaneurs/aero-pi-cam/releases/tag/{__version__}"
+    assert json_data["software_source"].startswith("https://github.com/CaenFalaisePlaneurs/aero-pi-cam/releases/tag/")
+
