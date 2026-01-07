@@ -6,7 +6,7 @@ No timezone conversions or daylight saving time adjustments are applied.
 
 from datetime import UTC, datetime
 
-from suncalc import get_times
+from suncalc import get_times  # type: ignore[import-untyped]
 
 from ..core.config import LocationConfig
 
