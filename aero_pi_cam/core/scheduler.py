@@ -326,7 +326,8 @@ async def schedule_next_capture(
                 if not isinstance(existing_job.trigger, DateTrigger):
                     needs_reschedule = True
                 # If already using DateTrigger, check if the run_date is different
-                elif existing_job.trigger.run_date != next_capture_time:
+                # Use a small tolerance (1 second) to avoid unnecessary rescheduling due to timing precision
+                elif abs((existing_job.trigger.run_date - next_capture_time).total_seconds()) > 1:
                     needs_reschedule = True
             else:
                 # Need to use IntervalTrigger - check if current job is using IntervalTrigger with same interval
