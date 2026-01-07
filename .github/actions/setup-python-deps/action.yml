@@ -3,8 +3,6 @@ description: 'Sets up Python 3.13.5, caches pip dependencies, and installs requi
 runs:
   using: 'composite'
   steps:
-    - uses: actions/checkout@v4
-      shell: bash
     - name: Set up Python 3.13.5
       uses: actions/setup-python@v3
       with:

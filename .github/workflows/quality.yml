@@ -14,6 +14,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/setup-python-deps
     - name: Lint
       run: |
@@ -22,6 +23,7 @@ jobs:
   typecheck:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/setup-python-deps
     - name: Type check
       run: |
@@ -30,6 +32,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/setup-python-deps
     - name: Unit test
       run: |
