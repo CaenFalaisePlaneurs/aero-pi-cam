@@ -278,7 +278,7 @@ async def schedule_next_capture(
             _configure_scheduler_logger()
             scheduler = AsyncIOScheduler()
             scheduler.start()
-            
+
             # Schedule capture job
             if use_transition:
                 # Create wrapper that calls capture_and_upload_func then schedule_func
@@ -303,7 +303,7 @@ async def schedule_next_capture(
                     coalesce=True,  # Run at most once if multiple runs are missed
                     misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
                 )
-            
+
             # Add schedule_check job on first run
             if schedule_func:
                 scheduler.add_job(
@@ -317,7 +317,7 @@ async def schedule_next_capture(
             # Check if we need to reschedule the capture job
             existing_job = scheduler.get_job("capture_job")
             needs_reschedule = False
-            
+
             if existing_job is None:
                 # No existing job, need to create one
                 needs_reschedule = True
@@ -334,14 +334,14 @@ async def schedule_next_capture(
                     needs_reschedule = True
                 elif existing_job.trigger.interval.total_seconds() != interval_seconds:
                     needs_reschedule = True
-            
+
             if needs_reschedule:
                 # Remove existing capture job only (keep schedule_check running)
                 try:
                     scheduler.remove_job("capture_job")
                 except Exception:
                     pass
-                
+
                 # Schedule capture job with new settings
                 if use_transition:
                     # Create wrapper that calls capture_and_upload_func then schedule_func
@@ -366,7 +366,7 @@ async def schedule_next_capture(
                         coalesce=True,  # Run at most once if multiple runs are missed
                         misfire_grace_time=600,  # Ignore missed runs if more than 10 minutes late
                     )
-            
+
             # Ensure schedule_check job exists (in case it was removed somehow)
             if schedule_func:
                 schedule_check_job = scheduler.get_job("schedule_check")
