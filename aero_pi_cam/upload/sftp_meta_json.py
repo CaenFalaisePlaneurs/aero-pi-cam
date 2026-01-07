@@ -5,6 +5,7 @@ import os
 from datetime import UTC, datetime, timedelta
 from urllib.parse import urlparse
 
+from .. import __version__
 from ..core.config import Config
 
 
@@ -91,6 +92,8 @@ def generate_metadata_json(
 
     # Create JSON metadata with all requested fields
     json_data = {
+        "software_version": f"aero-pi-cam {__version__}",
+        "software_source": f"{config.metadata.github_repo}/releases/tag/{__version__}",
         "day_night_mode": mode_str,
         "debug_mode": debug_enabled,
         "last_update": update_time_iso,
