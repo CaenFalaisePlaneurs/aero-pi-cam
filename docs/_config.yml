@@ -13,7 +13,6 @@ baseurl: /aero-pi-cam
 
 # Exclude files from processing
 exclude:
-  - README.md
   - Gemfile
   - Gemfile.lock
 

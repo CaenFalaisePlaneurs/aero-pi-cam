@@ -1,4 +1,9 @@
-![aero-pi-cam logo](docs/aero-pi-cam_logo.png)
+---
+layout: default
+title: aero-pi-cam
+---
+
+![aero-pi-cam logo](aero-pi-cam_logo.png)
 
 # aero-pi-cam
 
