@@ -93,7 +93,7 @@ def generate_metadata_json(
     # Create JSON metadata with all requested fields
     json_data = {
         "software_version": f"aero-pi-cam {__version__}",
-        "software_source": f"https://github.com/CaenFalaisePlaneurs/aero-pi-cam/releases/tag/{__version__}",
+        "software_source": f"{config.metadata.github_repo}/releases/tag/{__version__}",
         "day_night_mode": mode_str,
         "debug_mode": debug_enabled,
         "last_update": update_time_iso,

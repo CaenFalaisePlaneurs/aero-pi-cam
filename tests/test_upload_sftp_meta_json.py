@@ -416,6 +416,6 @@ def test_generate_metadata_json_software_version_fields() -> None:
 
     # Check software source field
     assert "software_source" in json_data
-    assert json_data["software_source"] == f"https://github.com/CaenFalaisePlaneurs/aero-pi-cam/releases/tag/{__version__}"
-    assert json_data["software_source"].startswith("https://github.com/CaenFalaisePlaneurs/aero-pi-cam/releases/tag/")
+    assert json_data["software_source"] == f"{config.metadata.github_repo}/releases/tag/{__version__}"
+    assert "/releases/tag/" in json_data["software_source"]
 
