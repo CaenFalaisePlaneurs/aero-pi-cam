@@ -5,6 +5,8 @@ title: Contributing Guide
 
 # Contributing
 
+> **Note**: Contributing is volunteer-based and does not provide any right for help. We all do our best, but we need time to fly too...
+
 ## Development Setup
 
 ### Python Version Management
@@ -113,6 +115,43 @@ The app will:
 - Run until interrupted with `Ctrl+C`
 
 **Note**: With `DEBUG_MODE=true`, a dummy API server runs on `localhost:8000` and saves images to `.debug/cam/{location}-{camera_name}.jpg` (e.g., `.debug/cam/LFAS-hangar_2.jpg`). You can also test without an API by leaving `api.url` unset in the config.
+
+### Enabling Debug Mode in Systemd Service
+
+To enable debug mode when running as a systemd service:
+
+1. **Edit the systemd service file:**
+   ```bash
+   sudo systemctl edit aero-pi-cam
+   ```
+
+2. **Add the following:**
+   ```ini
+   [Service]
+   Environment="DEBUG_MODE=true"
+   ```
+
+3. **Reload systemd:**
+   ```bash
+   sudo systemctl daemon-reload
+   ```
+
+4. **Restart the service:**
+   ```bash
+   sudo systemctl restart aero-pi-cam
+   ```
+
+**How it works:**
+- When `DEBUG_MODE=true` and `upload.method: "API"`, the service automatically starts a dummy API server on `localhost:8000`
+- All image uploads go to the dummy server instead of the configured API
+- The dummy server saves images to `.debug/cam/{location}-{camera_name}.jpg` with static filenames
+- No direct file writes - all images go through the upload process (same as production)
+- **Note**: Debug mode only applies when using API upload method. SFTP uploads will use the configured SFTP server even in debug mode.
+
+**Image location:**
+- Images are saved to `.debug/cam/{location}-{camera_name}.jpg` in the current working directory
+- Example: `.debug/cam/LFAS-hangar_2.jpg`
+- Filenames are sanitized (spaces → underscores, non-ASCII removed)
 
 To stop the app, press `Ctrl+C` (handles SIGINT gracefully).
 
