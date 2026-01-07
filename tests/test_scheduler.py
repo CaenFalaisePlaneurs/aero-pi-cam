@@ -318,6 +318,8 @@ async def test_schedule_check_does_not_reset_interval_timer(mock_config) -> None
 
     This test verifies the fix for the bug where schedule_check would reset the
     timer every 5 minutes, preventing long interval jobs (like 3600s) from ever running.
+
+    Regression test for: https://github.com/CaenFalaisePlaneurs/aero-pi-cam/issues/5
     """
     capture_func = AsyncMock()
     schedule_func = AsyncMock()
