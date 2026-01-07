@@ -1,0 +1,62 @@
+---
+layout: default
+title: aero-pi-cam Documentation
+---
+
+<div class="section">
+    <h2>Documentation</h2>
+    <p>A Python 3.13 background service for Raspberry Pi that captures images from an IP camera via RTSP/ffmpeg on a day/night schedule and uploads them via API or SFTP.</p>
+    
+    <h3><strong>Key features:</strong></h3>
+    <ul>
+        <li>Free and open source - no subscription or permission required to use</li>
+        <li>Scheduled capture with different intervals for day and night based on sunrise/sunset</li>
+        <li>RTSP capture via ffmpeg with authentication support (works with any RTSP camera)</li>
+        <li>Multiple upload methods: API (PUT requests with retry logic) or SFTP upload</li>
+        <li>METAR/TAF overlay: Optional weather information overlay from Aviation Weather API</li>
+        <li>EXIF and XMP metadata: Automatic embedding of camera info, GPS coordinates, and license information</li>
+        <li>Systemd service: Auto-start, auto-restart, journald logging</li>
+    </ul>
+    
+    <ul class="doc-list">
+        <li>
+            <a href="{{ 'README.html' | relative_url }}">
+                <div>
+                    <div class="doc-title">aero-pi-cam</div>
+                    <div class="doc-description">Main project documentation and installation guide</div>
+                </div>
+            </a>
+        </li>
+        <li>
+            <a href="{{ 'CONTRIBUTE.html' | relative_url }}">
+                <div>
+                    <div class="doc-title">Contributing Guide</div>
+                    <div class="doc-description">Development setup, workflow, and contribution guidelines</div>
+                </div>
+            </a>
+        </li>
+        <li>
+            <a href="{{ 'PYTHON_VERSION.html' | relative_url }}">
+                <div>
+                    <div class="doc-title">Python Version Compatibility</div>
+                    <div class="doc-description">Python version requirements and compatibility information</div>
+                </div>
+            </a>
+        </li>
+        <li>
+            <a href="{{ 'TEST_PIP_INSTALL.html' | relative_url }}">
+                <div>
+                    <div class="doc-title">Testing Pip Package Installation</div>
+                    <div class="doc-description">How to test the pip package installation process</div>
+                </div>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="section">
+    <h2>API Documentation</h2>
+    <p>OpenAPI 3.0 specification for the webcam image upload API:</p>
+    <a href="{{ 'openapi.json' | relative_url }}" class="api-link">View OpenAPI Specification (JSON)</a>
+</div>
+

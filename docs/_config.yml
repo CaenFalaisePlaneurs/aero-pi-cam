@@ -1,0 +1,18 @@
+title: aero-pi-cam Documentation
+description: Documentation for aero-pi-cam - A Python service for Raspberry Pi that captures images from IP cameras
+
+# Markdown processor
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+
+# Site settings
+url: https://caenfalaiseplaneurs.github.io
+baseurl: /aero-pi-cam
+
+# Exclude files from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+
