@@ -1,6 +1,6 @@
 """Webcam Capture Service for Aeronautical Webcams."""
 
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 
 # Backward compatibility re-exports
 from .capture.capture import capture_frame
