@@ -220,6 +220,43 @@ def test_capture_timeout() -> None:
         reset_subprocess_run()
 
 
+def test_capture_timeout_seconds_parameter() -> None:
+    """Test that capture_frame passes timeout_seconds to subprocess."""
+    captured_timeout = None
+
+    def mock_run(*args, **kwargs):  # noqa: ARG001
+        nonlocal captured_timeout
+        captured_timeout = kwargs.get("timeout")
+        result = MagicMock()
+        result.stdout = b"fake-data"
+        result.returncode = 0
+        return result
+
+    set_subprocess_run(mock_run)
+
+    try:
+        capture_frame("rtsp://test:test@localhost:554/stream", timeout_seconds=15)
+        assert captured_timeout == 15
+    finally:
+        reset_subprocess_run()
+
+
+def test_capture_timeout_error_message_uses_custom_timeout() -> None:
+    """Test that timeout error message reflects custom timeout_seconds."""
+
+    def mock_run(*args, **kwargs):  # noqa: ARG001
+        raise subprocess.TimeoutExpired("ffmpeg", 10)
+
+    set_subprocess_run(mock_run)
+
+    try:
+        result = capture_frame("rtsp://test:test@localhost:554/stream", timeout_seconds=10)
+        assert result.success is False
+        assert "10s" in result.error
+    finally:
+        reset_subprocess_run()
+
+
 def test_capture_with_query_parameters() -> None:
     """Test capture with query parameters in URL."""
     captured_args = None

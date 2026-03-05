@@ -12,17 +12,27 @@ class CameraConfig(BaseModel):
     """Camera configuration."""
 
     rtsp_url: str = Field(
-        ..., description="RTSP URL for camera stream (with or without credentials)"
+        ...,
+        description="RTSP URL for camera stream (with or without credentials). Use one '*' in hostname for DHCP scan (e.g. 192.168.0.10*).",
     )
     rtsp_user: str | None = Field(None, description="RTSP username (alternative to URL-embedded)")
     rtsp_password: str | None = Field(
         None, description="RTSP password (alternative to URL-embedded)"
     )
+    dhcp_scan_max_attempts: int = Field(
+        5,
+        ge=1,
+        le=20,
+        description="Max candidate IPs when RTSP URL has wildcard (e.g. 10* -> 100..104)",
+    )
+    dhcp_scan_timeout_seconds: int = Field(
+        10, ge=1, le=60, description="Per-attempt timeout in seconds when scanning DHCP candidates"
+    )
 
     @field_validator("rtsp_url")
     @classmethod
     def validate_rtsp_url(cls, v: str) -> str:
-        """Validate RTSP URL format."""
+        """Validate RTSP URL format (allows '*' in hostname for DHCP scan)."""
         if not v.startswith("rtsp://"):
             raise ValueError("RTSP URL must start with rtsp://")
         return v

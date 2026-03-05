@@ -34,6 +34,7 @@ def capture_frame(
     rtsp_url: str,
     rtsp_user: str | None = None,
     rtsp_password: str | None = None,
+    timeout_seconds: int = 30,
 ) -> CaptureResult:
     """Capture single frame from RTSP stream.
 
@@ -41,6 +42,7 @@ def capture_frame(
         rtsp_url: RTSP URL (with or without credentials)
         rtsp_user: Optional username (if not in URL)
         rtsp_password: Optional password (if not in URL - no URL encoding needed)
+        timeout_seconds: ffmpeg subprocess timeout (default 30s)
     """
     from urllib.parse import quote
 
@@ -93,7 +95,7 @@ def capture_frame(
         result = _subprocess_run(
             args,
             capture_output=True,
-            timeout=30,
+            timeout=timeout_seconds,
             check=True,
         )
 
@@ -103,7 +105,7 @@ def capture_frame(
         return CaptureResult(success=True, image=result.stdout)
 
     except subprocess.TimeoutExpired:
-        return CaptureResult(success=False, error="ffmpeg timeout after 30s")
+        return CaptureResult(success=False, error=f"ffmpeg timeout after {timeout_seconds}s")
     except subprocess.CalledProcessError as e:
         stderr = e.stderr.decode() if e.stderr else "Unknown error"
         return CaptureResult(

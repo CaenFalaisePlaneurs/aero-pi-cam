@@ -44,6 +44,7 @@ _is_running = {"value": False}
 _camera_connected = {"value": False}
 _api_connected = {"value": False}
 _running_task_ref: dict[str, asyncio.Task | None] = {"value": None}
+_last_camera_ip_ref: dict[str, str | None] = {"value": None}
 
 
 def shutdown(signum: int, frame: object) -> None:  # noqa: ARG001
@@ -71,6 +72,7 @@ async def _capture_and_upload_wrapper() -> None:
         camera_connected_ref=_camera_connected,
         api_connected_ref=_api_connected,
         running_task_ref=_running_task_ref,
+        last_camera_ip_ref=_last_camera_ip_ref,
     )
 
 

@@ -6,7 +6,7 @@ from io import BytesIO
 
 from PIL import Image
 
-from ..capture.capture import capture_frame
+from ..capture.rtsp_scan import capture_frame_with_scan
 from ..overlay.overlay import add_comprehensive_overlay
 from ..upload.dummy_api import get_image_filename
 from ..upload.upload import upload_image
@@ -24,6 +24,7 @@ async def capture_and_upload(
     camera_connected_ref: dict[str, bool],
     api_connected_ref: dict[str, bool],
     running_task_ref: dict[str, asyncio.Task | None],
+    last_camera_ip_ref: dict[str, str | None] | None = None,
 ) -> None:
     """Main capture and upload workflow.
 
@@ -34,6 +35,7 @@ async def capture_and_upload(
         camera_connected_ref: Dictionary with 'value' key to track camera connection status
         api_connected_ref: Dictionary with 'value' key to track API connection status
         running_task_ref: Dictionary with 'value' key to store current running task
+        last_camera_ip_ref: Optional dict with 'value' key for last successful camera hostname (DHCP scan)
     """
     if is_running_ref.get("value", False):
         print("Capture skipped: already running (previous capture still in progress)")
@@ -61,11 +63,14 @@ async def capture_and_upload(
         if shutdown_event and shutdown_event.is_set():
             return
 
-        # Capture frame (use separate credentials if provided, otherwise use URL-embedded)
-        result = capture_frame(
+        # Capture frame (DHCP scan if URL has wildcard; use separate credentials if provided)
+        result = capture_frame_with_scan(
             config.camera.rtsp_url,
             rtsp_user=config.camera.rtsp_user,
             rtsp_password=config.camera.rtsp_password,
+            max_attempts=config.camera.dhcp_scan_max_attempts,
+            scan_timeout_seconds=config.camera.dhcp_scan_timeout_seconds,
+            last_camera_ip_ref=last_camera_ip_ref,
         )
         if not result.success or not result.image:
             if result.error:
