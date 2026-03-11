@@ -333,3 +333,118 @@ async def test_upload_image_with_config_sftp() -> None:
     assert result.success is True
     # Verify both files were written
     assert mock_sftp.open.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_sftp_uploader_with_history() -> None:
+    """Test SftpUploader uploads timestamped copy when keep_history is set."""
+    sftp_config = SftpConfig(
+        host="test.example.com",
+        port=22,
+        user="testuser",
+        password="testpass",
+        remote_path="/test/path",
+        timeout_seconds=30,
+        keep_history="1h",
+    )
+    config = _create_test_config(upload_method="SFTP", sftp_config=sftp_config)
+
+    metadata = {
+        "timestamp": "2026-01-02T15:30:00Z",
+        "location": "TEST",
+        "is_day": "true",
+    }
+
+    mock_image_file = MockFileContextManager()
+    mock_ts_file = MockFileContextManager()
+    mock_json_file = MockFileContextManager()
+
+    mock_sftp = AsyncMock()
+    mock_sftp.listdir = AsyncMock(return_value=[])
+    mock_sftp.makedirs = AsyncMock()
+    mock_sftp.open = MagicMock(side_effect=[mock_image_file, mock_ts_file, mock_json_file])
+    mock_sftp.__aenter__ = AsyncMock(return_value=mock_sftp)
+    mock_sftp.__aexit__ = AsyncMock(return_value=None)
+
+    mock_sftp_client_cm = AsyncMock()
+    mock_sftp_client_cm.__aenter__ = AsyncMock(return_value=mock_sftp)
+    mock_sftp_client_cm.__aexit__ = AsyncMock(return_value=None)
+
+    mock_conn = AsyncMock()
+    mock_conn.start_sftp_client = MagicMock(return_value=mock_sftp_client_cm)
+    mock_conn.__aenter__ = AsyncMock(return_value=mock_conn)
+    mock_conn.__aexit__ = AsyncMock(return_value=None)
+
+    uploader = SftpUploader(sftp_config)
+    with (
+        patch("asyncssh.connect", return_value=mock_conn),
+        patch("aero_pi_cam.upload.sftp.schedule_cleanup") as mock_cleanup,
+    ):
+        result = await uploader.upload(
+            b"fake-jpeg-data", metadata, config, filename="TEST-test_camera-clean.jpg"
+        )
+
+    assert result.success is True
+    # 3 files: latest image + timestamped copy + cam.json
+    assert mock_sftp.open.call_count == 3
+
+    # Verify timestamped copy path
+    ts_call_path = mock_sftp.open.call_args_list[1][0][0]
+    assert "20260102T153000Z" in ts_call_path
+    assert ts_call_path.endswith(".jpg")
+
+    # Verify cleanup was scheduled
+    mock_cleanup.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_sftp_uploader_no_history_by_default() -> None:
+    """Test SftpUploader does NOT upload timestamped copy when keep_history is not set."""
+    sftp_config = SftpConfig(
+        host="test.example.com",
+        port=22,
+        user="testuser",
+        password="testpass",
+        remote_path="/test/path",
+        timeout_seconds=30,
+    )
+    config = _create_test_config(upload_method="SFTP", sftp_config=sftp_config)
+
+    metadata = {
+        "timestamp": "2026-01-02T15:30:00Z",
+        "location": "TEST",
+        "is_day": "true",
+    }
+
+    mock_image_file = MockFileContextManager()
+    mock_json_file = MockFileContextManager()
+
+    mock_sftp = AsyncMock()
+    mock_sftp.listdir = AsyncMock(return_value=[])
+    mock_sftp.makedirs = AsyncMock()
+    mock_sftp.open = MagicMock(side_effect=[mock_image_file, mock_json_file])
+    mock_sftp.__aenter__ = AsyncMock(return_value=mock_sftp)
+    mock_sftp.__aexit__ = AsyncMock(return_value=None)
+
+    mock_sftp_client_cm = AsyncMock()
+    mock_sftp_client_cm.__aenter__ = AsyncMock(return_value=mock_sftp)
+    mock_sftp_client_cm.__aexit__ = AsyncMock(return_value=None)
+
+    mock_conn = AsyncMock()
+    mock_conn.start_sftp_client = MagicMock(return_value=mock_sftp_client_cm)
+    mock_conn.__aenter__ = AsyncMock(return_value=mock_conn)
+    mock_conn.__aexit__ = AsyncMock(return_value=None)
+
+    uploader = SftpUploader(sftp_config)
+    with (
+        patch("asyncssh.connect", return_value=mock_conn),
+        patch("aero_pi_cam.upload.sftp.schedule_cleanup") as mock_cleanup,
+    ):
+        result = await uploader.upload(
+            b"fake-jpeg-data", metadata, config, filename="TEST-test_camera-clean.jpg"
+        )
+
+    assert result.success is True
+    # Only 2 files: latest image + cam.json (no timestamped copy)
+    assert mock_sftp.open.call_count == 2
+    mock_cleanup.assert_not_called()

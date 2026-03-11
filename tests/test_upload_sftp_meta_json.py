@@ -37,6 +37,7 @@ def test_generate_metadata_json_day_mode() -> None:
     json_bytes = generate_metadata_json(metadata, config, image_url)
     json_data = json.loads(json_bytes.decode("utf-8"))
 
+    assert json_data["version"] == 1
     assert json_data["day_night_mode"] == "day"
     assert json_data["debug_mode"] is False
     assert "last_update" in json_data
@@ -318,6 +319,7 @@ def test_generate_metadata_json_all_fields_present() -> None:
     json_data = json.loads(json_bytes.decode("utf-8"))
 
     # Top-level fields
+    assert json_data["version"] == 1
     assert "software_version" in json_data
     assert "software_source" in json_data
     assert "day_night_mode" in json_data
@@ -420,3 +422,110 @@ def test_generate_metadata_json_software_version_fields() -> None:
         json_data["software_source"] == f"{config.metadata.github_repo}/releases/tag/{__version__}"
     )
     assert "/releases/tag/" in json_data["software_source"]
+
+
+def test_generate_metadata_json_v2_with_images_map() -> None:
+    """Test JSON generation with images_map produces v2 format."""
+    from aero_pi_cam.core.config import SftpConfig
+
+    sftp_config = SftpConfig(
+        host="test.example.com",
+        port=22,
+        user="testuser",
+        password="testpass",
+        remote_path="/test/path",
+        timeout_seconds=30,
+        keep_history="1h",
+    )
+    config = _create_test_config(upload_method="SFTP", sftp_config=sftp_config)
+    metadata = {
+        "timestamp": "2026-01-02T15:30:00Z",
+        "location": "TEST",
+        "is_day": "true",
+        "raw_metar": "",
+        "raw_taf": "",
+        "sunrise": "2026-01-02T07:30:00Z",
+        "sunset": "2026-01-02T17:30:00Z",
+        "camera_heading": "060° RWY 06",
+    }
+    image_url = "https://test.com/TEST-test_camera.jpg"
+    images_map = {
+        "2026-01-02T15:30:00Z": "https://test.com/TEST-test_camera-clean.jpg",
+        "2026-01-02T15:25:00Z": "https://test.com/TEST-test_camera-clean.20260102T152500Z.jpg",
+    }
+
+    json_bytes = generate_metadata_json(metadata, config, image_url, images_map=images_map)
+    json_data = json.loads(json_bytes.decode("utf-8"))
+
+    assert json_data["version"] == 2
+    assert "cameras" in json_data
+    assert "images" not in json_data
+
+    camera = json_data["cameras"][0]
+    assert camera["path"] == image_url
+    assert camera["TTL"] == "300"
+    assert camera["images"] == images_map
+    assert camera["location"]["name"] == "TEST"
+    assert camera["sunrise"] == "2026-01-02T07:30:00Z"
+
+
+def test_generate_metadata_json_v2_no_metar_path_absent() -> None:
+    """Test that v2 format does not include no_metar_path."""
+    from aero_pi_cam.core.config import SftpConfig
+
+    sftp_config = SftpConfig(
+        host="test.example.com",
+        port=22,
+        user="testuser",
+        password="testpass",
+        remote_path="/test/path",
+        timeout_seconds=30,
+    )
+    config = _create_test_config(upload_method="SFTP", sftp_config=sftp_config)
+    metadata = {
+        "timestamp": "2026-01-02T15:30:00Z",
+        "location": "TEST",
+        "is_day": "true",
+    }
+    image_url = "https://test.com/TEST-test_camera.jpg"
+    images_map = {
+        "2026-01-02T15:30:00Z": "https://test.com/TEST-test_camera-clean.jpg",
+    }
+
+    json_bytes = generate_metadata_json(metadata, config, image_url, images_map=images_map)
+    json_data = json.loads(json_bytes.decode("utf-8"))
+
+    assert json_data["version"] == 2
+    camera = json_data["cameras"][0]
+    assert "no_metar_path" not in camera
+
+
+def test_generate_metadata_json_v1_has_no_metar_path() -> None:
+    """Test that v1 format still includes no_metar_path."""
+    from aero_pi_cam.core.config import SftpConfig
+
+    sftp_config = SftpConfig(
+        host="test.example.com",
+        port=22,
+        user="testuser",
+        password="testpass",
+        remote_path="/test/path",
+        timeout_seconds=30,
+    )
+    config = _create_test_config(upload_method="SFTP", sftp_config=sftp_config)
+    metadata = {
+        "timestamp": "2026-01-02T15:30:00Z",
+        "location": "TEST",
+        "is_day": "true",
+    }
+    image_url = "https://test.com/TEST-test_camera.jpg"
+    no_metar_url = "https://test.com/TEST-test_camera-clean.jpg"
+
+    json_bytes = generate_metadata_json(
+        metadata, config, image_url, no_metar_image_url=no_metar_url
+    )
+    json_data = json.loads(json_bytes.decode("utf-8"))
+
+    assert json_data["version"] == 1
+    assert "images" in json_data
+    assert json_data["images"][0]["no_metar_path"] == no_metar_url

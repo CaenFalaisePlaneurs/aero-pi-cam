@@ -1,11 +1,14 @@
 """Configuration loading and validation using Pydantic."""
 
 import os
+from datetime import timedelta
 from pathlib import Path
 from typing import Literal
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+
+from ..utils.duration import parse_duration
 
 
 class CameraConfig(BaseModel):
@@ -105,6 +108,26 @@ class SftpConfig(BaseModel):
         None,
         description="Primary image server domain for image URLs in JSON metadata (e.g., http://caenfal.cluster121.hosting.ovh.net/). If not set, image URLs will be relative paths.",
     )
+    keep_history: str | None = Field(
+        None,
+        description='Duration to keep historical images on the SFTP server (e.g., "1h", "30m", "2h30m"). None or "0" disables history.',
+    )
+
+    @field_validator("keep_history")
+    @classmethod
+    def validate_keep_history(cls, v: str | None) -> str | None:
+        """Validate that keep_history is a parseable duration string."""
+        if v is None:
+            return None
+        parse_duration(v)
+        return v
+
+    @property
+    def keep_history_duration(self) -> timedelta | None:
+        """Return keep_history as a timedelta, or None if disabled."""
+        if self.keep_history is None:
+            return None
+        return parse_duration(self.keep_history)
 
 
 class UploadConfig(BaseModel):

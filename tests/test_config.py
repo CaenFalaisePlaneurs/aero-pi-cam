@@ -698,6 +698,92 @@ def test_load_config_validation_messaging(capsys: pytest.CaptureFixture[str]) ->
         Path(temp_path).unlink()
 
 
+def test_sftp_keep_history_valid() -> None:
+    """Test that valid keep_history values are accepted."""
+    from datetime import timedelta
+
+    from aero_pi_cam.core.config import SftpConfig
+
+    config = SftpConfig(
+        host="test.example.com",
+        port=22,
+        user="testuser",
+        password="testpass",
+        remote_path="/test/path",
+        timeout_seconds=30,
+        keep_history="1h",
+    )
+    assert config.keep_history == "1h"
+    assert config.keep_history_duration == timedelta(hours=1)
+
+
+def test_sftp_keep_history_combined() -> None:
+    """Test keep_history with combined hours and minutes."""
+    from datetime import timedelta
+
+    from aero_pi_cam.core.config import SftpConfig
+
+    config = SftpConfig(
+        host="test.example.com",
+        port=22,
+        user="testuser",
+        password="testpass",
+        remote_path="/test/path",
+        timeout_seconds=30,
+        keep_history="2h30m",
+    )
+    assert config.keep_history_duration == timedelta(hours=2, minutes=30)
+
+
+def test_sftp_keep_history_none_by_default() -> None:
+    """Test that keep_history defaults to None (disabled)."""
+    from aero_pi_cam.core.config import SftpConfig
+
+    config = SftpConfig(
+        host="test.example.com",
+        port=22,
+        user="testuser",
+        password="testpass",
+        remote_path="/test/path",
+        timeout_seconds=30,
+    )
+    assert config.keep_history is None
+    assert config.keep_history_duration is None
+
+
+def test_sftp_keep_history_zero_disables() -> None:
+    """Test that keep_history '0' disables history."""
+    from aero_pi_cam.core.config import SftpConfig
+
+    config = SftpConfig(
+        host="test.example.com",
+        port=22,
+        user="testuser",
+        password="testpass",
+        remote_path="/test/path",
+        timeout_seconds=30,
+        keep_history="0",
+    )
+    assert config.keep_history == "0"
+    assert config.keep_history_duration is None
+
+
+def test_sftp_keep_history_invalid_raises() -> None:
+    """Test that invalid keep_history values are rejected."""
+    from aero_pi_cam.core.config import SftpConfig
+
+    with pytest.raises(ValueError, match="Invalid duration format"):
+        SftpConfig(
+            host="test.example.com",
+            port=22,
+            user="testuser",
+            password="testpass",
+            remote_path="/test/path",
+            timeout_seconds=30,
+            keep_history="invalid",
+        )
+
+
 def test_load_config_validation_error_messaging(capsys: pytest.CaptureFixture[str]) -> None:
     """Test that load_config prints formatted validation errors."""
     import tempfile

@@ -39,6 +39,7 @@ upload:
 #   remote_path: "/remote/path"  # Required, no default (e.g., "/public_html/cam/" or "/home/username/www/")
 #   timeout_seconds: 30  # Required, no default
 #   image_base_url: "http(s)://your-image-server-domain.com"  # Optional: Primary image server domain for image URLs in JSON metadata. If not set, image URLs will be relative paths.
+#   keep_history: "1h"  # Optional: Keep timestamped copies of clean images for this duration (e.g., "1h", "30m", "2h30m"). Omit or set to "0" to disable history.
 
 # Debug mode (for development/testing only)
 # Enable via DEBUG_MODE environment variable (DEBUG_MODE=true)
