@@ -3,7 +3,7 @@ layout: page
 title: aero-pi-cam
 ---
 
-<img src="https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/docs/aero-pi-cam_logo.png" alt="aero-pi-cam logo" style="max-width: 20vw;">
+<img src="https://raw.githubusercontent.com/CaenFalaisePlaneurs/aero-pi-cam/main/docs/aero-pi-cam_logo.png" alt="aero-pi-cam logo" width="300px">
 
 # aero-pi-cam
 
